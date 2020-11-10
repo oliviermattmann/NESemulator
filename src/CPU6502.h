@@ -6,7 +6,7 @@
 #define NESEMULATOR_CPU6502_H
 
 
-class cpu6502 {
+class CPU6502 {
 
 };
 
