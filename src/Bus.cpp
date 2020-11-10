@@ -4,7 +4,7 @@
 #include "Bus.h"
 
 Bus::Bus(){
-
+    //Empty
 }
 
 int8_t Bus::busRead(int16_t address){

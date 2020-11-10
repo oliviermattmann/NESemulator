@@ -14,7 +14,6 @@ class Bus {
 
 public: int8_t RAM[2048] = {0};
 
-
 public: Bus();
 
 public: ~Bus();
@@ -22,8 +21,6 @@ public: ~Bus();
 public: int8_t busRead(int16_t address);
 
 public: void busWrite(int16_t address, int8_t data);
-
-
 
 };
 
