@@ -12,8 +12,8 @@
 class CPU6502 {
 
 public:
-    CPU6502();
 
+//Registers and Flags
     int8_t X;
     int8_t Y;
     int8_t ACC;
@@ -37,28 +37,38 @@ public:
     // B Flag
     bool B;
 
+
+    Bus *bus;
+    int8_t op_code;
+    int16_t addressparam;
+
+
     struct OP_CODE {
         void (CPU6502::*funcP)();
-        //void (CPU6502::*x)(void) = nullptr;
+        void (CPU6502::*x)(void) = nullptr;
         int8_t cycles;
     };
     OP_CODE OP_TABLE[16][16]{};
 
-    /* https://wiki.nesdev.com/w/index.php/CPU_addressing_modes */
+    CPU6502(Bus *bus);
 
+    void write(int16_t address, int8_t data);
+    int8_t read(int16_t address);
+
+    /* https://wiki.nesdev.com/w/index.php/CPU_addressing_modes */
     // Indexed addressing
 
-    int8_t zero_page_indexed_x(int8_t address);
+    void zero_page_indexed_x();
 
-    int8_t zero_page_indexed_y(int8_t address);
+    void zero_page_indexed_y();
 
-    int8_t absolute_indexed_x(int8_t address);
+    void absolute_indexed_x();
 
-    int8_t absolute_indexed_y(int8_t address);
+    void absolute_indexed_y();
 
-    int8_t indexed_indirect_x(int8_t address);
+    void indexed_indirect_x();
 
-    int8_t indirect_indexed_y(int8_t address);
+    void indirect_indexed_y();
 
     // Operations
 
@@ -72,12 +82,14 @@ public:
      */
     void SED();
 
-    /**
-     * Executes an Operation Code.
-     */
-    void EXC_OP(int8_t op_code);
+    void DEC();
 
-    void run(Bus bus);
+    /**
+     * Executes the saved Operation Code.
+     */
+    void EXC_OP();
+
+    void run();
 
 
 };
