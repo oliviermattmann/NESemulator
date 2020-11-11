@@ -5,6 +5,7 @@
 #ifndef NESEMULATOR_CPU6502_H
 #define NESEMULATOR_CPU6502_H
 #include <cstdint>
+#include "Bus.h"
 
 
 
@@ -35,6 +36,13 @@ public:
     bool N;
     // B Flag
     bool B;
+
+    struct OP_CODE {
+        void (CPU6502::*funcP)();
+        //void (CPU6502::*x)(void) = nullptr;
+        int8_t cycles;
+    };
+    OP_CODE OP_TABLE[16][16]{};
 
     /* https://wiki.nesdev.com/w/index.php/CPU_addressing_modes */
 
@@ -69,16 +77,11 @@ public:
      */
     void EXC_OP(int8_t op_code);
 
-    void run();
+    void run(Bus bus);
 
-    OP_CODE OP_TABLE[256]{};
 
 };
 
-struct OP_CODE {
-    void* f; //pointer to function
-    void (CPU6502::*x)(void) = nullptr;
-    int8_t cycles;
-};
+
 
 #endif //NESEMULATOR_CPU6502_H

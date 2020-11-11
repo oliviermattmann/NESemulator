@@ -4,9 +4,10 @@
 
 int main(){
     Bus *bus = new Bus();
-    bus->busWrite(0x0000, 0);
-    CPU6502 cpu = new CPU6502();
-    cpu.run(bus);
+    CPU6502 *cpu = new CPU6502();
+    bus->busWrite(0x0000, 0x00);
+    bus->busWrite(0x0001, 0x10);
+    cpu->run(*bus);
     return 0;
 
 }

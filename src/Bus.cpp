@@ -6,6 +6,9 @@
 Bus::Bus(){
     //Empty
 }
+Bus::~Bus() {
+    //does nothing
+}
 
 int8_t Bus::busRead(int16_t address){
     return RAM[address];
