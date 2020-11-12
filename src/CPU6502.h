@@ -1,6 +1,7 @@
-//
-// Created by matia on 10/11/2020.
-//
+/*
+ *  This header defines the CPU6502 emulating class.
+ */
+
 
 #ifndef NESEMULATOR_CPU6502_H
 #define NESEMULATOR_CPU6502_H
@@ -11,6 +12,12 @@
  * Central processing unit emulating class.
  */
 class CPU6502 {
+
+    /**
+     * Constructor for the CPU6502 emulating class.
+     * @param bus
+     */
+    explicit CPU6502(Bus *bus);
 
     /**
      * Runs the CPU6502 Module.
@@ -39,12 +46,6 @@ public:
 private:
 
     Bus *bus; // Pointer to the bus.
-
-    /**
-     *
-     * @param bus
-     */
-    explicit CPU6502(Bus *bus);
 
     /**
      * Writes a byte to a given address.
@@ -94,6 +95,12 @@ private:
     void indexed_indirect_x();
     void indirect_indexed_y();
 
+    // Suggestion:
+    // if an operation requires no special indexing we can
+    // point to an empty function, we avoid checking for nullptr
+    // in EXC_OP
+    void void_indexed() {}
+
     /* Operations of the CPU */
 
     /**
@@ -107,11 +114,17 @@ private:
     void SED();
 
     /**
-     *
+     * Subtracts one from the value held at a specified memory location setting the
+     * zero and negative flags as appropriate.
      */
     void DEC();
 
-    /* ----------------------- */
+    /**
+     * Clear Carry Flag, Implicit instruction.
+     * (= No further operand needs to be specified.)
+     */
+     void CLC();
+
 
 };
 
