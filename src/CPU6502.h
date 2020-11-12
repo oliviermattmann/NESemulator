@@ -7,94 +7,70 @@
 #include <cstdint>
 #include "Bus.h"
 
-/**
- * Central processing unit emulating class.
- */
+
+
 class CPU6502 {
 
-    /**
-     * Runs the CPU6502 Module.
-     */
-    void run();
-
-    /* Main Registers */
 public:
-    int8_t X;       // X-Register
-    int8_t Y;       // Y-Register
-    int8_t ACC;     // Accumulator
-    int16_t PC;     // Program Counter
-    int8_t SP;      // Stack Pointer
 
-    /* Status Flag Register */
-public:
-    bool Z;  // 0-Flag
-    bool C;  // Carry
-    bool I;  // Interrupt Disable
-    bool D;  // Unused, Decimal
-    bool V;  // Overflow
-    bool N;  // Negative
-    bool B;  // B Flag
+//Registers and Flags
+    int8_t X;
+    int8_t Y;
+    int8_t ACC;
+    //Programm counter
+    int16_t PC;
+    //Stack Pointer
+    int8_t SP;
+    //Flags
+    // Zero
+    bool Z;
+    // Carry
+    bool C;
+    // Interrupt disable
+    bool I;
+    // Decimal (not used)
+    bool D;
+    // Overflow
+    bool V;
+    // Negative
+    bool N;
+    // B Flag
+    bool B;
 
-    /* Bus Handling */
-private:
 
-    Bus *bus; // Pointer to the bus.
+    Bus *bus;
+    int8_t op_code;
+    int16_t addressparam;
 
-    /**
-     *
-     * @param bus
-     */
-    explicit CPU6502(Bus *bus);
 
-    /**
-     * Writes a byte to a given address.
-     * @param address ,address to write to.
-     * @param data ,data to write.
-     */
-    void write(int16_t address, int8_t data);
-
-    /**
-     * Reads a byte from a given address.
-     * @param address ,address to read from.
-     * @return byte from given address.
-     */
-    int8_t read(int16_t address);
-
-    /* Operation-Code Handling */
-private:
-    /**
-     *  OP_CODE struct emulates an entry in the
-     *  Operation-Code-Matrix and contains within
-     *  it function pointers to the operations themselves,
-     *  addressing mode functions and number of clock-cycles.
-     */
     struct OP_CODE {
         void (CPU6502::*funcP)();
         void (CPU6502::*x)(void) = nullptr;
         int8_t cycles;
     };
-
-    int8_t op_code;
-    int16_t addressparam;
-
-
     OP_CODE OP_TABLE[16][16]{};
 
-    /**
-    * Executes the saved Operation Code.
-    */
-    void EXC_OP();
+    CPU6502(Bus *bus);
 
-    /* Main Addressing Modes */
-private:
+    void write(int16_t address, int8_t data);
+    int8_t read(int16_t address);
+
+    /* https://wiki.nesdev.com/w/index.php/CPU_addressing_modes */
+    // Indexed addressing
+
     void zero_page_indexed_x();
+
     void zero_page_indexed_y();
+
     void absolute_indexed_x();
+
     void absolute_indexed_y();
+
     void indexed_indirect_x();
+
     void indirect_indexed_y();
 
-    /* Operations of the CPU */
+    // Operations
 
     /**
      * Set Carry Flag
@@ -106,12 +82,15 @@ private:
      */
     void SED();
 
-    /**
-     *
-     */
     void DEC();
 
-    /* ----------------------- */
+    /**
+     * Executes the saved Operation Code.
+     */
+    void EXC_OP();
+
+    void run();
+
 
 };
 
