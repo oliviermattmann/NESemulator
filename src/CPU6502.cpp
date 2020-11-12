@@ -99,11 +99,11 @@ void CPU6502::indexed_indirect_x() {
 //Doesnt work yet
 void CPU6502::indirect_indexed_y() {
     PC++;
-    char lo = read((read(PC)+this->Y)%256);
-    char hi = read((read(PC)+this->Y + 1)%256);
+    char lo = read((read(PC))%256);
+    char hi = read((read(PC)+ 1)%256);
 
 
-    addressparam = (hi << 8) | lo;
+    addressparam = ((hi << 8) | lo)+ this->Y;
 }
 
 /* Bus Handling */
