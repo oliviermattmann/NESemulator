@@ -17,7 +17,7 @@ class CPU6502 {
      * Constructor for the CPU6502 emulating class.
      * @param bus
      */
-    explicit CPU6502(Bus *bus);
+public: CPU6502(Bus *bus);
 
     /**
      * Runs the CPU6502 Module.
@@ -43,7 +43,7 @@ public:
     bool B;  // B Flag
 
     /* Bus Handling */
-private:
+public:
 
     Bus *bus; // Pointer to the bus.
 

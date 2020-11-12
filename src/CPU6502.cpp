@@ -22,9 +22,9 @@ CPU6502::CPU6502(Bus *bus) {
     this->D = 0x0;
 
     op_code = 0x0;
-    addressparam = 0;
+    addressparam = 2;
     OP_TABLE[0][0] = {&CPU6502::SEC, &CPU6502::void_indexed, 1};
-    OP_TABLE[1][0] = {&CPU6502::DEC,&CPU6502::zero_page_indexed_x, 1};
+    OP_TABLE[1][0] = {&CPU6502::DEC,&CPU6502::indexed_indirect_x, 1};
     OP_TABLE[2][0] = {&CPU6502::SED, &CPU6502::void_indexed, 1};
     OP_TABLE[3][0] = {&CPU6502::CLC, &CPU6502::void_indexed, 1};
 
@@ -90,12 +90,20 @@ void CPU6502::absolute_indexed_y() {
 //Doesnt work yet
 void CPU6502::indexed_indirect_x() {
     PC++;
-    addressparam = read(read((read(PC) + this->X)%256) + read((read(PC) + this->X + 1)%256)*256);
+    char lo = read((read(PC)+this->X)%256);
+    char hi = read((read(PC)+this->X + 1)%256);
+
+
+    addressparam = (hi << 8) | lo;
 }
 //Doesnt work yet
 void CPU6502::indirect_indexed_y() {
     PC++;
-    addressparam = read(read((read(PC) + this->Y)%256) + read((read(PC) + this->Y + 1)%256)*256);
+    char lo = read((read(PC)+this->Y)%256);
+    char hi = read((read(PC)+this->Y + 1)%256);
+
+
+    addressparam = (hi << 8) | lo;
 }
 
 /* Bus Handling */
