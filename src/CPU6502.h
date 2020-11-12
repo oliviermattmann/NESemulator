@@ -110,7 +110,122 @@ private:
 
     /* Operations of the CPU */
 
-    void ANC();
+
+    //Load/Store Operations
+    void LDA();
+
+    void LDX();
+
+    void LDY();
+
+    void STA();
+
+    void STX();
+
+    void STY();
+
+
+    //Register Transfers
+    void TAX();
+
+    void TAY();
+
+    void TXA();
+
+    void TYA();
+
+
+    //Stack Operations
+    void TSX();
+
+    void TXS();
+
+    void PHA();
+
+    void PHP();
+
+    void PLA();
+
+    void PLP();
+
+    //Logical
+
+    void AND();
+
+    void EOR();
+
+    void ORA();
+
+    void BIT();
+
+    //Arithmetic
+
+    void ADC();
+
+    void SBC();
+
+    void CMP();
+
+    void CPX();
+
+    void CPY();
+
+
+    //Increments/Decrements
+
+    void INC();
+
+    void INX();
+
+    void INY();
+
+    void DEC();
+
+    void DEX();
+
+    void DEY();
+
+
+    //Shifts
+
+    void ASL();
+
+    void LSR();
+
+    void ROL();
+
+    void ROR();
+
+
+    //Jumps/Calls
+
+    void JMP();
+
+    void JSR();
+
+    void RTS();
+
+
+    //Branches
+
+    void BCC();
+
+    void BCS();
+
+    void BEQ();
+
+    void BMI();
+
+    void BNE();
+
+    void BLP();
+
+    void BVC();
+
+    void BVS();
+
+
+    //Status Flag Changes
     /**
      * Set Carry Flag
      */
@@ -121,19 +236,53 @@ private:
      */
     void SED();
 
-    /**
-     * Subtracts one from the value held at a specified memory location setting the
-     * zero and negative flags as appropriate.
-     */
-    void DEC();
+    void SEI();
 
     /**
-     * Clear Carry Flag, Implicit instruction.
-     * (= No further operand needs to be specified.)
+     * Clear Carry Flag
      */
      void CLC();
 
+     void CLD();
 
+     void CLI();
+
+     void CLV();
+
+     //System Functions
+     void BRK();
+
+     void NOP();
+
+     void RTI();
+
+
+     //other
+    void ISC();
+
+    void KIL();
+
+    void DCP();
+
+
+    void AXS();
+    void LAX();
+    void SHX();
+    void SHY();
+    void TAS();
+    void SAX();
+    void AHX();
+    void XAA();
+    void ARR();
+    void SRE();
+    void ANC();
+    void SLO();
+    void ALC();
+    void BPL();
+    void LAS();
+    void ALR();
+    void RRA();
+    void RLA();
 };
 
 
