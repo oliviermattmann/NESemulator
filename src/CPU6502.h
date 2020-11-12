@@ -79,7 +79,7 @@ private:
     int16_t addressparam;
 
 
-    OP_CODE OP_TABLE[16][16]{};
+    OP_CODE OP_TABLE[256]{};
 
     /**
     * Executes the saved Operation Code.
@@ -88,12 +88,19 @@ private:
 
     /* Main Addressing Modes */
 private:
-    void zero_page_indexed_x();
-    void zero_page_indexed_y();
-    void absolute_indexed_x();
-    void absolute_indexed_y();
-    void indexed_indirect_x();
-    void indirect_indexed_y();
+    void imp();
+    void imm();
+    void acc();
+    void zp();
+    void zpx();
+    void zpy();
+    void abs();
+    void abx();
+    void aby();
+    void rel();
+    void ind();
+    void izx();
+    void izy();
 
     // Suggestion:
     // if an operation requires no special indexing we can
@@ -103,6 +110,7 @@ private:
 
     /* Operations of the CPU */
 
+    void ANC();
     /**
      * Set Carry Flag
      */
