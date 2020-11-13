@@ -412,7 +412,15 @@ int8_t CPU6502::read(int16_t address) {
 
 /* OP functions */
 
-void CPU6502::LDA(){}
+void CPU6502::LDA(){
+    if (addressparam == 0) {
+        this->Z = true;
+    }
+    if (addressparam & SEVENTH) {
+        this->N = true;
+    }
+    this->ACC = addressparam;
+}
 
 void CPU6502::LDX(){}
 

@@ -86,6 +86,22 @@ private:
     */
     void EXC_OP();
 
+    /**
+     *  To check on a specific bit. E.g.
+     *  if (address & THIRD)
+     *  Improves readability.
+     */
+    enum BitMask {
+        FIRST = 1 << 0,
+        SECOND = 1 << 1,
+        THIRD = 1 << 2,
+        FOURTH = 1 << 3,
+        FIFTH = 1 << 4,
+        SIXED = 1 << 5,
+        SEVENTH = 1 << 6,
+        EIGHTH = 1 << 7
+    };
+
     /* Main Addressing Modes */
 private:
     /**
