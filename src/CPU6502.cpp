@@ -540,7 +540,9 @@ void CPU6502::SED(){
     this->D = true;
 }
 
-void CPU6502::SEI(){}
+void CPU6502::SEI(){
+    this->I = true;
+}
 
 
 void CPU6502::CLC(){

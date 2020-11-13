@@ -88,18 +88,69 @@ private:
 
     /* Main Addressing Modes */
 private:
+    /**
+     * Implied
+     */
     void imp();
+
+    /**
+     * Immediate
+     */
     void imm();
+
+    /**
+     * From Accumulator
+     */
     void acc();
+
+    /**
+     * Zero Page
+     */
     void zp();
+
+    /**
+     * Zero page X-Indexed
+     */
     void zpx();
+
+    /**
+     * Zero page Y-Indexed
+     */
     void zpy();
+
+    /**
+     * Absolute addressing
+     */
     void abs();
+
+    /**
+     * Absolut,X
+     */
     void abx();
+
+    /**
+     * Absolut,Y
+     */
     void aby();
+
+    /**
+     * Relative
+     */
     void rel();
+
+    /**
+     * Indirect
+     */
     void ind();
+
+    /**
+     * Indexed indirect
+     */
     void izx();
+
+    /**
+     * Indirect Indexed
+     */
     void izy();
 
     // Suggestion:
@@ -112,116 +163,248 @@ private:
 
 
     //Load/Store Operations
+    /**
+     * Load Accumulator
+     */
     void LDA();
 
+    /**
+     * Load X Register
+     */
     void LDX();
 
+    /**
+     * Load Y Register
+     */
     void LDY();
 
+    /**
+     * Store Accumulator
+     */
     void STA();
 
+    /**
+     * Store X Register
+     */
     void STX();
 
+    /**
+     * Store Y Register
+     */
     void STY();
 
 
     //Register Transfers
+    /**
+     * Transfer Accumulator to X
+     */
     void TAX();
 
+    /**
+     * Transfer Accumulator to Y
+     */
     void TAY();
 
+    /**
+     * Transfer X to Accumulator
+     */
     void TXA();
 
+    /**
+     * Transfer Y to Accumulator
+     */
     void TYA();
 
 
     //Stack Operations
+    /**
+     * Transfer Stack Pointer to X
+     */
     void TSX();
 
+    /**
+     * Transfer X to Stack Pointer
+     */
     void TXS();
 
+    /**
+     * Push Accumulator on stack
+     */
     void PHA();
 
+    /**
+     * Push Processor Status on Stack
+     */
     void PHP();
 
+    /**
+     * Pull Accumulator from Stack
+     */
     void PLA();
 
+    /**
+     * Pull Processor Status from Stack
+     */
     void PLP();
 
     //Logical
-
+    /**
+     * Logical AND
+     */
     void AND();
 
+    /**
+     * Exclusive OR
+     */
     void EOR();
 
+    /**
+     * Logical Inclusive OR
+     */
     void ORA();
 
+    /**
+     * Bit Test
+     */
     void BIT();
 
     //Arithmetic
-
+    /**
+     * Add with Carry
+     */
     void ADC();
 
+    /**
+     * Subtract with Carry
+     */
     void SBC();
 
+    /**
+     * Compare Accumulator
+     */
     void CMP();
 
+    /**
+     * Compare X Register
+     */
     void CPX();
 
+    /**
+     * Compare Y Register
+     */
     void CPY();
 
 
     //Increments/Decrements
-
+    /**
+     * Increment a memory location
+     */
     void INC();
 
+    /**
+     * Increment the X Register
+     */
     void INX();
 
+    /**
+     * Increment the Y Register
+     */
     void INY();
 
+    /**
+     * Decrement a memory location
+     */
     void DEC();
 
+    /**
+     * Decrement the X Register
+     */
     void DEX();
 
+    /**
+     * Decrement the Y Register
+     */
     void DEY();
 
 
     //Shifts
-
+    /**
+     * Arithmetic Shift Left
+     */
     void ASL();
 
+    /**
+     * Arithmetic Shift Right
+     */
     void LSR();
 
+    /**
+     * Rotate Left
+     */
     void ROL();
 
+    /**
+     * Rotate Right
+     */
     void ROR();
 
 
     //Jumps/Calls
-
+    /**
+     * Jump to another location
+     */
     void JMP();
 
+    /**
+     * Jump to a subroutine
+     */
     void JSR();
 
+    /**
+     * Return from subroutine
+     */
     void RTS();
 
 
     //Branches
-
+    /**
+     * Branch if Carry Flag clear
+     */
     void BCC();
 
+    /**
+     * Branch if Carry Flag set
+     */
     void BCS();
 
+    /**
+     * Branch if Zero Flag set
+     */
     void BEQ();
 
+    /**
+     * Branch if Negative Flag set
+     */
     void BMI();
 
+    /**
+     * Branch if Zero Flag clear
+     */
     void BNE();
 
+    /**
+     * Branch if Negative Flag clear
+     */
     void BLP();
 
+    /**
+     * Branch if Overflow Flag clear
+     */
     void BVC();
 
+    /**
+     * Branch if Overflow Flag set
+     */
     void BVS();
 
 
@@ -236,6 +419,9 @@ private:
      */
     void SED();
 
+    /**
+     * Set Interrupt Disable Flag
+     */
     void SEI();
 
     /**
@@ -243,17 +429,35 @@ private:
      */
      void CLC();
 
+     /**
+      * Clear Decimal Flag
+      */
      void CLD();
 
+     /**
+      * Clear Interrupt Disable Flag
+      */
      void CLI();
 
+     /**
+      * Clear overflow Flag
+      */
      void CLV();
 
      //System Functions
+     /**
+      * Force an Interrupt
+      */
      void BRK();
 
+     /**
+      * No Operation
+      */
      void NOP();
 
+     /**
+      * Return from Interrupt
+      */
      void RTI();
 
 
