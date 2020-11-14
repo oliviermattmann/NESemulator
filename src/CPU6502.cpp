@@ -557,11 +557,17 @@ void CPU6502::CLC(){
     this->C = false;
 }
 
-void CPU6502::CLD(){}
+void CPU6502::CLD(){
+    this->D = false;
+}
 
-void CPU6502::CLI(){}
+void CPU6502::CLI(){
+    this->I = false;
+}
 
-void CPU6502::CLV(){}
+void CPU6502::CLV(){
+    this->V = false;
+}
 
 //System Functions
 void CPU6502::BRK(){}
