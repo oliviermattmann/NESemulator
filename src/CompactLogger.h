@@ -6,7 +6,6 @@
 #include <string>
 #include <chrono>
 
-#define LOGFILE "log.txt"
 
 /**
  * A quickie of a basic Logger.
@@ -46,7 +45,7 @@ private:
     /**
      * Saves time of logger instantiation.
      */
-    std::chrono::system_clock::duration creation;
+    std::chrono::system_clock::duration creation{};
 
     /**
      * Gets current time since epoch in microseconds.
@@ -55,9 +54,20 @@ private:
     static std::chrono::system_clock::duration get_time();
 
     /**
+     * Determines the maximum number of lines in a logfile before
+     * autoflush.
+     */
+    static const int MAX_NUMBER_OF_LINES_IN_LOG = 2000;
+
+    /**
+     * Counts the logfiles created.
+     */
+    int log_file_counter;
+
+    /**
      * Fills up with logs to dump into textfile.
      */
-    std::deque<const char*> log_deque;
+    std::deque<std::string> log_deque;
 
     /**
      * Returns a string containing time and
@@ -77,7 +87,7 @@ private:
      * loglevel.
      * @param str
      */
-    void out(const char* str, LEVEL level);
+    void out(const std::string& str, LEVEL level);
 
     /**
      * Logs something.
@@ -126,7 +136,10 @@ public:
 
 
     /**
-     * Closes files, de-queues the deque. Still has problems.
+     * To print to a file all the log-statements that have been collected
+     * to this point. The files can be named individually. Can be used
+     * successively.
+     * @param output_filename name of the file. (put a .txt in there).
      */
     void flush();
 

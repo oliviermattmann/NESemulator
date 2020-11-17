@@ -13,8 +13,9 @@ using days = duration<int, ratio_multiply<hours::period, ratio<24> >::type>;
 
 CompactLogger::CompactLogger() {
     this->level = DEBUG;
-    this->log_deque = std::deque<const char*>();
-    this->creation = this->get_time();
+    this->log_deque = std::deque<std::string>();
+    this->log_file_counter = 0;
+    this->creation = CompactLogger::get_time();
 }
 
 void CompactLogger::setLevel(CompactLogger::LEVEL _level) {
@@ -24,7 +25,7 @@ void CompactLogger::setLevel(CompactLogger::LEVEL _level) {
 
 std::string CompactLogger::get_format(const char* function_name, LEVEL _level) {
     auto micro = to_string(
-            (this->get_time() - this->creation).count()
+            (CompactLogger::get_time() - this->creation).count()
             );
     std::string buf(micro);
     buf.append(" mu");
@@ -36,10 +37,13 @@ std::string CompactLogger::get_format(const char* function_name, LEVEL _level) {
     return buf;
 }
 
-void CompactLogger::out(const char* str, CompactLogger::LEVEL _level) {
+void CompactLogger::out(const std::string& str, CompactLogger::LEVEL _level) {
     if (_level >= this->level) {
-        log_deque.push_back(str);
-        printf("%s", str);
+        this->log_deque.push_back(str);
+        cout << str.c_str() << endl;
+    }
+    if ((int)this->log_deque.size() > MAX_NUMBER_OF_LINES_IN_LOG) {
+        this->flush();
     }
 }
 
@@ -74,20 +78,27 @@ void CompactLogger::fatal(const char *function_name, const char *str) {
 
 void CompactLogger::log(const char *function_name, const char *str, LEVEL _level) {
     std::string format = get_format(function_name, _level);
-    format.insert(0, "\n");
+    //format.insert(0, "\n");
     format.append(str);
-    this->out(format.c_str(), _level);
+    this->out(format, _level);
 }
 
 void CompactLogger::flush() {
-    ofstream _logfile;
-    _logfile.open (LOGFILE);
-    auto it = this->log_deque.begin();
-    while (it != this->log_deque.end()) {
-        _logfile << ' ' << *it++;
-        _logfile << '\n';
+    if (this->log_deque.empty()) {
+        cout << "CompactLogger: There is nothing to flush." << endl;
+        return;
     }
-    _logfile.close();
+    std::string buf("compact_log_");
+    buf.append((const char *)this->log_file_counter);
+    buf.append(".txt");
+    std::ofstream file(buf.c_str());
+    for (auto & i : this->log_deque) {
+        file << i.c_str() << endl;
+    }
+    file.flush();
+    file.close();
+    this->log_deque.clear();
+    this->log_file_counter++;
 }
 
 std::chrono::system_clock::duration CompactLogger::get_time() {
