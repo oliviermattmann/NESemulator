@@ -25,13 +25,15 @@ public: CPU6502(Bus *bus);
     void run();
 
     /* Main Registers */
+    void testInstruction(uint8_t opcode);
+
 public:
-    int8_t X;       // X-Register
-    int8_t Y;       // Y-Register
-    int8_t ACC;     // Accumulator
-    int16_t PC;     // Program Counter
-    int8_t SP;      // Stack Pointer
-    int8_t SR;      // Status Register
+    uint8_t X;       // X-Register
+    uint8_t Y;       // Y-Register
+    uint8_t ACC;     // Accumulator
+    uint16_t PC;     // Program Counter
+    uint8_t SP;      // Stack Pointer
+    uint8_t SR;      // Status Register
     /* Status Flag Register */
 
 
@@ -45,14 +47,14 @@ public:
      * @param address ,address to write to.
      * @param data ,data to write.
      */
-    void write(int16_t address, int8_t data);
+    void write(uint16_t address, int8_t data);
 
     /**
      * Reads a byte from a given address.
      * @param address ,address to read from.
      * @return byte from given address.
      */
-    int8_t read(int16_t address);
+    int8_t read(uint16_t address);
 
     /* Operation-Code Handling */
 private:
@@ -65,11 +67,11 @@ private:
     struct OP_CODE {
         void (CPU6502::*funcP)();
         void (CPU6502::*x)(void) = nullptr;
-        int8_t cycles;
+        uint8_t cycles;
     };
 
-    int8_t op_code;
-    int16_t addressparam;
+    uint8_t op_code;
+    uint16_t addressparam;
 
 
     OP_CODE OP_TABLE[256]{};
@@ -509,6 +511,8 @@ private:
     void ALR();
     void RRA();
     void RLA();
+
+
 };
 
 

@@ -1,7 +1,7 @@
 /*
  * This .cpp implements the CPU6502 emulating class.
  */
-
+#include "CompactLogger.h"
 #include "CPU6502.h"
 #include <iostream>
 
@@ -9,6 +9,8 @@
  * Constructor for the CPU6502 emulating class.
  * @param bus
  */
+CompactLogger logger = CompactLogger();
+
 CPU6502::CPU6502(Bus *bus) {
     /* Bus */
     this->bus = bus;
@@ -19,6 +21,7 @@ CPU6502::CPU6502(Bus *bus) {
     this->ACC = 0x0;
     this->PC = 0x0;
     this->SR = 0x00;
+
 
     op_code = 0x0;
     addressparam = 0;
@@ -323,8 +326,9 @@ void CPU6502::run() {
  */
 void CPU6502::EXC_OP() {
     (this->*OP_TABLE[op_code].x)();
-    (this->*OP_TABLE[op_code].funcP)();
-    PC++;
+    printf("%d\n" , addressparam);
+   (this->*OP_TABLE[op_code].funcP)();
+
 }
 
 /*Addressing modes*/
@@ -419,11 +423,11 @@ void CPU6502::izy() {
 
 /* Bus Handling */
 
-void CPU6502::write(int16_t address, int8_t data) {
+void CPU6502::write(uint16_t address, int8_t data) {
     bus->busWrite(address,data);
 }
 
-int8_t CPU6502::read(int16_t address) {
+int8_t CPU6502::read(uint16_t address) {
     return bus->busRead(address);
 }
 
@@ -476,7 +480,11 @@ void CPU6502::PLP(){}
 
 //Logical
 
-void CPU6502::AND(){}
+void CPU6502::AND() {
+    printf("%d\n", read(addressparam));
+    CPU6502::ACC = ACC & read(addressparam);
+    printf("%d\n",ACC);
+}
 
 void CPU6502::EOR(){}
 
@@ -625,3 +633,43 @@ void CPU6502::LAS(){}
 void CPU6502::ALR(){}
 void CPU6502::RRA(){}
 void CPU6502::RLA(){}
+
+
+
+void CPU6502::testInstruction(uint8_t opcode) {
+    CPU6502::op_code = opcode;
+    CPU6502::X = 0x07;
+    CPU6502::Y = 0x05;
+    ACC = 0x06;
+
+    //zp nimmt 0x0001, abs auch 0X0002, imm benutzt die daten in 0x0001 als argument
+    CPU6502::write(0x0001, 0x10);
+    CPU6502::write(0x0002, 0x01);
+
+    CPU6502::write(0x0014, 0x02);
+    CPU6502::write(0x0015, 0x01);
+
+    //abs
+    CPU6502::write(0x0110, 0x15);
+    //zp
+    CPU6502::write(0x0010, 0x14);
+    //zpx
+    CPU6502::write(0x0017, 0x12);
+    //abx
+    CPU6502::write(0x0117, 0x40);
+    //aby
+    CPU6502::write(0x0115, 0x16);
+
+    //izy
+    CPU6502::write(0x0010, 0x14);
+    CPU6502::write(0x0011, 0x01);
+    CPU6502::write(0x0119, 0x64);
+
+    //izx
+    CPU6502::write(0x0017, 0x12);
+    CPU6502::write(0x0018, 0x01);
+    CPU6502::write(0x0112, 0x72);
+
+
+    CPU6502::EXC_OP();
+}
