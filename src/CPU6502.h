@@ -31,16 +31,9 @@ public:
     int8_t ACC;     // Accumulator
     int16_t PC;     // Program Counter
     int8_t SP;      // Stack Pointer
-
+    int8_t SR;      // Status Register
     /* Status Flag Register */
-public:
-    bool Z;  // 0-Flag
-    bool C;  // Carry
-    bool I;  // Interrupt Disable
-    bool D;  // Unused, Decimal
-    bool V;  // Overflow
-    bool N;  // Negative
-    bool B;  // B Flag
+
 
     /* Bus Handling */
 public:
@@ -97,10 +90,23 @@ private:
         THIRD = 1 << 2,
         FOURTH = 1 << 3,
         FIFTH = 1 << 4,
-        SIXED = 1 << 5,
+        SIXTH = 1 << 5,
         SEVENTH = 1 << 6,
         EIGHTH = 1 << 7
     };
+    enum Flags {
+       C = FIRST,
+       Z = SECOND,
+       I = THIRD,
+       D = FOURTH,
+       B = FIFTH,           //this flag has no cpu effect
+       B2 = SIXTH,          //^^
+       V = SEVENTH,
+       N = EIGHTH
+    };
+
+    void setStatusFlag(Flags flag, bool state);
+    bool getStatusFlag(Flags flag);
 
     /* Main Addressing Modes */
 private:

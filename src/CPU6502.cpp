@@ -18,8 +18,7 @@ CPU6502::CPU6502(Bus *bus) {
     this->Y = 0x0;
     this->ACC = 0x0;
     this->PC = 0x0;
-    this->C = 0x0;
-    this->D = 0x0;
+    this->SR = 0x00;
 
     op_code = 0x0;
     addressparam = 0;
@@ -286,6 +285,25 @@ CPU6502::CPU6502(Bus *bus) {
 
 
 }
+/**
+ * Sets the given Status flag to given state
+ */
+ void CPU6502::setStatusFlag(Flags flag, bool state) {
+     if(state) {
+         SR |= flag;        //if bit of flag is not already 1, it will be set to 1
+     } else {
+         SR &= flag;        //if bit of flag is not already 0, it will be set to 0
+     }
+ }
+
+ /**
+  * Get the state of a given Flag
+  */
+  bool CPU6502::getStatusFlag(Flags flag) {
+      int8_t maskedBit = SR & flag;
+      return (maskedBit > 0);               //if bit was set it will be greater than 0 otherwise it will be zero
+  }
+
 
 /**
  *  Runs the CPU6052.
@@ -414,10 +432,10 @@ int8_t CPU6502::read(int16_t address) {
 
 void CPU6502::LDA(){
     if (addressparam == 0) {
-        this->Z = true;
+        setStatusFlag(Z,true);
     }
     if (addressparam & SEVENTH) {
-        this->N = true;
+        setStatusFlag(N,true);
     }
     this->ACC = addressparam;
 }
@@ -540,37 +558,39 @@ void CPU6502::BVS(){}
 //Status Flag Changes
 
 void CPU6502::SEC(){
-    this->C = true;
+    setStatusFlag(C, true);
 }
 
 
 void CPU6502::SED(){
-    this->D = true;
+    setStatusFlag(D, true);
 }
 
 void CPU6502::SEI(){
-    this->I = true;
+    setStatusFlag(I, true);
 }
 
 
 void CPU6502::CLC(){
-    this->C = false;
+    setStatusFlag(C, false);
 }
 
 void CPU6502::CLD(){
-    this->D = false;
+    setStatusFlag(D, false);
 }
 
 void CPU6502::CLI(){
-    this->I = false;
+    setStatusFlag(I, false);
 }
 
 void CPU6502::CLV(){
-    this->V = false;
+    setStatusFlag(V, false);
 }
 
 //System Functions
-void CPU6502::BRK(){}
+void CPU6502::BRK(){
+    PC++;
+}
 
 void CPU6502::NOP(){}
 
