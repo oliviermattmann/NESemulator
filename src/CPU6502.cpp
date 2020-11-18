@@ -9,7 +9,7 @@
  * Constructor for the CPU6502 emulating class.
  * @param bus
  */
-CompactLogger logger = CompactLogger();
+CompactLogger logger = CompactLogger("CPU6502_log.txt");
 
 CPU6502::CPU6502(Bus *bus) {
     /* Bus */

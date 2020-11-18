@@ -2,8 +2,6 @@
 #ifndef NESEMULATOR_TESTS_H
 #define NESEMULATOR_TESTS_H
 
-void test_logger();
-
-void test_this();
+// Todo create tests for single mechanisms.
 
 #endif //NESEMULATOR_TESTS_H

@@ -23,25 +23,21 @@
 class CompactLogger {
 
 public:
-    enum LEVEL {
-        DEBUG = 0,
-        INFO = 1,
-        WARNING = 2,
-        FATAL = 3,
-    };
-
-    LEVEL level;
+    /**
+     * The constructor method of the logger takes an argument filename that is
+     * a (const char*) to a filename. This instance of logger will log to that file
+     * and overwrite previous information in that file.
+     * @param filename out-put-file name. (put .txt in there).
+     */
+    explicit CompactLogger(const char *filename);
 
     /**
-     * Sets the level of the logger instance.
-     * Can be used to switch levels during runtime.
-     * @param level
+     * Destructor
      */
-    void setLevel(LEVEL level);
+    ~CompactLogger();
 
 
 private:
-
     /**
      * Saves time of logger instantiation.
      */
@@ -54,20 +50,19 @@ private:
     static std::chrono::system_clock::duration get_time();
 
     /**
-     * Determines the maximum number of lines in a logfile before
-     * autoflush.
-     */
-    static const int MAX_NUMBER_OF_LINES_IN_LOG = 2000;
+    * Enum defining the different possible log-levels.
+    */
+    enum LEVEL {
+        DEBUG = 0,
+        INFO = 1,
+        WARNING = 2,
+        FATAL = 3,
+    };
 
     /**
-     * Counts the logfiles created.
+     * Current level of the logger instance.
      */
-    int log_file_counter;
-
-    /**
-     * Fills up with logs to dump into textfile.
-     */
-    std::deque<std::string> log_deque;
+    LEVEL level;
 
     /**
      * Returns a string containing time and
@@ -83,11 +78,21 @@ private:
     static const char* get_level(LEVEL _level);
 
     /**
+     * Indicates wether the logger
+     */
+    bool printsTerminal;
+
+    /**
+     * Name of out-put-file corresponding to this logger.
+     */
+    const char* file_name;
+
+    /**
      * Writes string to terminal and file according to
      * loglevel.
      * @param str
      */
-    void out(const std::string& str, LEVEL level);
+    void out(const std::string& str, LEVEL level) const;
 
     /**
      * Logs something.
@@ -98,17 +103,21 @@ private:
     void log(const char* function_name, const char* str, LEVEL _level);
 
 
-
 public:
-    /**
-     * Constructor.
-     */
-    CompactLogger();
 
     /**
-     * Destructor
+     * Sets the level of the logger instance.
+     * Can be used to switch levels during runtime.
+     * @param level
      */
-    ~CompactLogger();
+    void setLevel(LEVEL level);
+
+    /**
+     * Sets the boolean deciding if logger does stdout.
+     * @param printsTerminal
+     */
+    void setTerminal(bool printsTerminal);
+
 
     /**
      * Logs msg on debug level.
@@ -133,15 +142,6 @@ public:
      * @param str
      */
     void fatal(const char* function_name, const char* str);
-
-
-    /**
-     * To print to a file all the log-statements that have been collected
-     * to this point. The files can be named individually. Can be used
-     * successively.
-     * @param output_filename name of the file. (put a .txt in there).
-     */
-    void flush();
 
 
 };
