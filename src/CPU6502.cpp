@@ -912,7 +912,7 @@ void CPU6502::testInstruction(uint8_t opcode) {
     CPU6502::op_code = opcode;
     CPU6502::X = 0x07;
     CPU6502::Y = 0x05;
-    ACC = 0x06;
+    ACC = 0x10;
 
     //zp nimmt 0x0001, abs auch 0X0002, imm benutzt die daten in 0x0001 als argument
     CPU6502::write(0x0001, 0x10);
@@ -942,8 +942,12 @@ void CPU6502::testInstruction(uint8_t opcode) {
     CPU6502::write(0x0018, 0x01);
     CPU6502::write(0x0112, 0x72);
 
-
+    CPU6502::displayMemoryPage(0);
     CPU6502::EXC_OP();
+    CPU6502::displayMemoryPage(0);
+    CPU6502::displayRegisters();
+    CPU6502::diplayFlags();
+
 }
 
 std::string CPU6502::intToHexString(uint8_t val) {
@@ -974,4 +978,25 @@ void CPU6502::displayMemoryRange(uint16_t start, uint16_t finish) {
 void CPU6502::displayMemoryPage(int page) {
     uint16_t addr = page*0xFF;
     displayMemoryRange(addr, addr + 0xFF);
+}
+
+void CPU6502::displayRegisters() {
+    std::cout
+    << "| X   : " << unsigned(X)<< " |\n"
+    << "| Y   : " << unsigned(Y) << " |\n"
+    << "| ACC : " << unsigned(ACC) << " |\n"
+    << "| PC  : " << unsigned(PC) << " |\n"
+    << "| SP  : " << unsigned(SP) << " |\n"
+    << std::endl;
+
+}
+
+void CPU6502::diplayFlags() {
+    std::cout
+    << "| C : " << getStatusFlag(C) << " |" << std::endl
+    << "| Z : " << getStatusFlag(Z) << " |" << std::endl
+    << "| I : " << getStatusFlag(I) << " |" << std::endl
+    << "| D : " << getStatusFlag(D) << " |" << std::endl
+    << "| V : " << getStatusFlag(V) << " |" << std::endl
+    << "| N : " << getStatusFlag(N) << " |" << std::endl << std::endl;
 }

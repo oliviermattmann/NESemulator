@@ -49,6 +49,15 @@ public:
      */
     void displayMemoryPage(int page);
 
+    /**
+     * Displays Registers in the console
+     */
+    void displayRegisters();
+
+    /**
+     * Displays Flag status
+     */
+    void diplayFlags();
     /* Main Registers */
 
     uint8_t X;       // X-Register
