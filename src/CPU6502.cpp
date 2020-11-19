@@ -31,6 +31,7 @@ CPU6502::CPU6502(Bus *bus) {
 
     op_code = 0x0;
     addressparam = 0;
+    setStatusFlag(B2, true);        //this unused Flag is always true;
 
     //Initializing OP_TABLE
     //KIL if op_code not set
@@ -394,10 +395,14 @@ void CPU6502::aby() {
     addressparam = (hi << 8) | lo;
     addressparam += this->Y;
 }
-
+//this addressing mode is only used by branching instructions, the relative address can range from -128 to +127 of
+// the branch instruction
 void CPU6502::rel() {
     PC++;
-    addressparam = PC + read(PC);
+    address_rel = read(PC);
+    if (address_rel & 0x80) {       //if the 8th bit is 1, then it is negative
+        address_rel |= 0xFF00;      //to make it negative set high byte to all 1's
+    }
 }
 
 void CPU6502::ind() {
@@ -652,62 +657,204 @@ void CPU6502::ROR(){}
 
 //Jumps/Calls
 
-void CPU6502::JMP(){}
+void CPU6502::JMP(){
+    PC = addressparam;
+    logger.debug(__FUNCTION__ ,
+                 "Jump in PC");
+}
 
-void CPU6502::JSR(){}
+void CPU6502::JSR(){
+    //(Jump to Subroutine) The JSR instruction pushes the address (minus one) of the return point on to the stack (PC-1)
+    // and then sets the program counter to the target memory address.
+    bus->busWrite(0x0100 + SP, ((PC-1) >> 8) & 0x00FF);     //push high-byte of PC-1 to Stack
+    SP--;                                                               //adjust StackPointer
+    bus->busWrite(0x0100 + SP, (PC-1) & 0x00FF);            //push low-byte of PC-1 to Stack
+    SP--;                                                               //adjust StackPointer to point to the next free space
+    PC = addressparam;                                                  //adjust ProgramCounter
+    logger.debug(__FUNCTION__ ,
+                 "Jump to Subroutine");
+}
 
-void CPU6502::RTS(){}
+void CPU6502::RTS(){
+    //(Return from Subroutine) The RTS instruction is used at the end of a subroutine to return to the calling routine.
+    //It pulls the program counter (minus one) from the stack.
+    SP++;                                                                   //adjust StackPointer to top element
+    int16_t low = (int16_t)bus->busRead(0x0100 + SP);                //get low-byte from stack
+    SP++;                                                                   //adjust StackPointer
+    int16_t high = (int16_t)(bus->busRead(0x0100 + SP) << 8);        //get high-byte from stack
+    PC = high + low + 1;                                                    //set new ProgramCounter
+    logger.debug(__FUNCTION__ ,
+                 "Return from Subroutine");
+}
 
 
 //Branches
 
-void CPU6502::BCC(){}
+void CPU6502::BCC(){
+    PC++;
+    if (getStatusFlag(C) == false) {
+        //branch is taken, so additional cycle needed
+        OPcycles++;
+        addressparam = PC + address_rel;
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
+            OPcycles++;                                     //incremented
+        }
+        PC = addressparam;
+    }
+    logger.debug(__FUNCTION__ ,
+                 "Branch if Carry Flag clear");
+}
 
-void CPU6502::BCS(){}
+void CPU6502::BCS(){
+    PC++;
+    if (getStatusFlag(C) == true) {
+        //branch is taken, so additional cycle needed
+        OPcycles++;
+        addressparam = PC + address_rel;
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
+            OPcycles++;                                     //incremented
+        }
+        PC = addressparam;
+    }
+    logger.debug(__FUNCTION__ ,
+                 "Branch if Carry Flag set");
+}
 
-void CPU6502::BEQ(){}
+void CPU6502::BEQ(){
+    PC++;
+    if (getStatusFlag(Z) == true) {
+        //branch is taken, so additional cycle needed
+        OPcycles++;
+        addressparam = PC + address_rel;
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
+            OPcycles++;                                     //incremented
+        }
+        PC = addressparam;
+    }
+    logger.debug(__FUNCTION__ ,
+                 "Branch if Zero Flag set (Branch if equal)");
+}
 
-void CPU6502::BMI(){}
+void CPU6502::BMI(){
+    PC++;
+    if (getStatusFlag(N) == true) {
+        //branch is taken, so additional cycle needed
+        OPcycles++;
+        addressparam = PC + address_rel;
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
+            OPcycles++;                                     //incremented
+        }
+        PC = addressparam;
+    }
+    logger.debug(__FUNCTION__ ,
+                 "Branch if Negative Flag set");
+}
 
-void CPU6502::BNE(){}
+void CPU6502::BNE(){
+    PC++;
+    if (getStatusFlag(Z) == false) {
+        //branch is taken, so additional cycle needed
+        OPcycles++;
+        addressparam = PC + address_rel;
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
+            OPcycles++;                                     //incremented
+        }
+        PC = addressparam;
+    }
+    logger.debug(__FUNCTION__ ,
+                 "Branch if Zero Flag clear (Branch if not equal)");
+}
 
-void CPU6502::BLP(){}
+void CPU6502::BLP(){
+    PC++;
+    if (getStatusFlag(N) == false) {
+        //branch is taken, so additional cycle needed
+        OPcycles++;
+        addressparam = PC + address_rel;
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
+            OPcycles++;                                     //incremented
+        }
+        PC = addressparam;
+    }
+    logger.debug(__FUNCTION__ ,
+                 "Branch if Negative Flag clear");
+}
 
-void CPU6502::BVC(){}
+void CPU6502::BVC(){
+    PC++;
+    if (getStatusFlag(V) == false) {
+        //branch is taken, so additional cycle needed
+        OPcycles++;
+        addressparam = PC + address_rel;
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
+            OPcycles++;                                     //incremented
+        }
+        PC = addressparam;
+    }
+    logger.debug(__FUNCTION__ ,
+                 "Branch if Overflow Flag clear");
+}
 
-void CPU6502::BVS(){}
+void CPU6502::BVS(){
+    PC++;
+    if (getStatusFlag(V) == true) {
+        //branch is taken, so additional cycle needed
+        OPcycles++;
+        addressparam = PC + address_rel;
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
+            OPcycles++;                                     //incremented
+        }
+        PC = addressparam;
+    }
+    logger.debug(__FUNCTION__ ,
+                 "Branch if Overflow Flag set");
+}
 
 
 //Status Flag Changes
 
 void CPU6502::SEC(){
     setStatusFlag(C, true);
+    logger.debug(__FUNCTION__ ,
+                 "Set Carry Flag");
 }
 
 
 void CPU6502::SED(){
     setStatusFlag(D, true);
+    logger.debug(__FUNCTION__ ,
+                 "Set Decimal Flag");
 }
 
 void CPU6502::SEI(){
     setStatusFlag(I, true);
+    logger.debug(__FUNCTION__ ,
+                 "Set Interrupt Disable Flag");
 }
 
 
 void CPU6502::CLC(){
     setStatusFlag(C, false);
+    logger.debug(__FUNCTION__ ,
+                 "Clear Carry Flag");
 }
 
 void CPU6502::CLD(){
     setStatusFlag(D, false);
+    logger.debug(__FUNCTION__ ,
+                 "Clear Decimal Flag");
 }
 
 void CPU6502::CLI(){
     setStatusFlag(I, false);
+    logger.debug(__FUNCTION__ ,
+                 "Clear Interrupt Disable Flag");
 }
 
 void CPU6502::CLV(){
     setStatusFlag(V, false);
+    logger.debug(__FUNCTION__ ,
+                 "Clear Overflow Flag");
 }
 
 //System Functions
@@ -717,7 +864,17 @@ void CPU6502::BRK(){
 
 void CPU6502::NOP(){}
 
-void CPU6502::RTI(){}
+void CPU6502::RTI(){
+    SP++;
+    SR = bus->busRead(0x0100 + SP);
+    SP++;
+    uint16_t low = bus->busRead(0x0100 + SP);
+    SP++;
+    uint16_t high = (bus->busRead(0x0100 + SP) << 0);
+    PC = high + low;
+    logger.debug(__FUNCTION__ ,
+                 "Return From Interrupt");
+}
 
 
 

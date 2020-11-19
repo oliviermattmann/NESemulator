@@ -65,6 +65,12 @@ public:
 
     Bus *bus; // Pointer to the bus.
 
+    /* cycle Handling */
+    uint8_t OPcycles;
+    bool addCycleInc;           //some addressing modes can cause an increase in cycles
+    bool opCycleInc;            //some opcodes can cause an increase in cycles
+                                //cycles are only increased with both bools are set to true
+
     /**
      * Writes a byte to a given address.
      * @param address ,address to write to.
@@ -95,6 +101,7 @@ private:
 
     uint8_t op_code;
     uint16_t addressparam;
+    uint16_t address_rel;           //needed for branching instructions
 
 
     OP_CODE OP_TABLE[256]{};
