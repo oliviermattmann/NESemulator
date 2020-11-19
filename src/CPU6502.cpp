@@ -31,6 +31,7 @@ CPU6502::CPU6502(Bus *bus) {
 
     op_code = 0x0;
     addressparam = 0;
+    address_rel = 0;
     setStatusFlag(B2, true);        //this unused Flag is always true;
 
     //Initializing OP_TABLE
@@ -860,6 +861,16 @@ void CPU6502::CLV(){
 //System Functions
 void CPU6502::BRK(){
     PC++;
+    setStatusFlag(B, true);
+    setStatusFlag(B2, true);
+    bus->busWrite(0x0100 + SP, (PC >> 8) & 0x00FF);  //push high byte of PC onto stack
+    SP--;
+    bus->busWrite(0x0100 + SP, PC & 0x00FF);        //push low byte of PC onto stack
+    SP--;
+    bus->busWrite(0x0100 + SP, SR);
+    SP--;
+    setStatusFlag(I, true);
+    PC = 0xFFFEFFFF;
 }
 
 void CPU6502::NOP(){}

@@ -16,9 +16,9 @@ int main(){
     cpu->displayMemoryPage(0);
     cpu->displayMemoryPage(1);
 
-    /*
-    cpu->testInstruction(0x29);
-     */
+
+    cpu->testInstruction(0x00);
+
 
     return 0;
 
