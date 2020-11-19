@@ -27,7 +27,7 @@ CPU6502::CPU6502(Bus *bus) {
     this->PC = 0x0;
     this->SR = 0x00;
 
-    this->SP = 0xFF;
+    this->SP = 0xFD;
 
     op_code = 0x0;
     addressparam = 0;
@@ -400,10 +400,7 @@ void CPU6502::aby() {
 // the branch instruction
 void CPU6502::rel() {
     PC++;
-    address_rel = read(PC);
-    if (address_rel & 0x80) {       //if the 8th bit is 1, then it is negative
-        address_rel |= 0xFF00;      //to make it negative set high byte to all 1's
-    }
+    address_rel = read(PC);     //address_rel is a signed integer, so it wraps around after 0x7F
 }
 
 void CPU6502::ind() {
@@ -870,7 +867,10 @@ void CPU6502::BRK(){
     bus->busWrite(0x0100 + SP, SR);
     SP--;
     setStatusFlag(I, true);
-    PC = 0xFFFEFFFF;
+    //set PC to IRQ vector
+
+    //PC = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8); does not work yet as this address is not implemented
+    // yet
 }
 
 void CPU6502::NOP(){}
@@ -926,7 +926,7 @@ void CPU6502::testInstruction(uint8_t opcode) {
     ACC = 0x10;
 
     //zp nimmt 0x0001, abs auch 0X0002, imm benutzt die daten in 0x0001 als argument
-    CPU6502::write(0x0001, 0x10);
+    CPU6502::write(0x0001, 0x17);
     CPU6502::write(0x0002, 0x01);
 
     CPU6502::write(0x0014, 0x02);
@@ -952,6 +952,11 @@ void CPU6502::testInstruction(uint8_t opcode) {
     CPU6502::write(0x0017, 0x12);
     CPU6502::write(0x0018, 0x01);
     CPU6502::write(0x0112, 0x72);
+
+    //Rel
+    //PC = 0xC8;
+    //write(PC+1, 0x80);
+
 
     CPU6502::displayMemoryPage(0);
     CPU6502::EXC_OP();

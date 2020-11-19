@@ -110,7 +110,7 @@ private:
 
     uint8_t op_code;
     uint16_t addressparam;
-    uint16_t address_rel;           //needed for branching instructions
+    int8_t address_rel;           //needed for branching instructions
 
 
     OP_CODE OP_TABLE[256]{};

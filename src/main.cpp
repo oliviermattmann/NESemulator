@@ -13,11 +13,9 @@ int main(){
     cpu->write(0x3, 0xFF);
     cpu->write(0x6, 0xFF);
 
-    cpu->displayMemoryPage(0);
-    cpu->displayMemoryPage(1);
 
+    cpu->testInstruction(0x50);
 
-    cpu->testInstruction(0x00);
 
 
     return 0;
