@@ -7,38 +7,61 @@
 #define NESEMULATOR_CPU6502_H
 #include <cstdint>
 #include "Bus.h"
+#include <stack>
+#include <string>
 
 /**
  * Central processing unit emulating class.
  */
 class CPU6502 {
 
+public:
     /**
      * Constructor for the CPU6502 emulating class.
      * @param bus
      */
-public: CPU6502(Bus *bus);
+    CPU6502(Bus *bus);
 
     /**
      * Runs the CPU6502 Module.
      */
     void run();
 
-    /* Main Registers */
+    /* DevOp functions */
+
     void testInstruction(uint8_t opcode);
 
-public:
+    /**
+     * Converts an uint8_t integer to a hex string
+     * to improve code readability.
+     * @param val
+     */
+    static std::string intToHexString(uint8_t val);
+
+    /**
+     * Prints a memory range of the bus nicely formatted.
+     */
+    void displayMemoryRange(uint16_t start, uint16_t finish);
+
+    /**
+     * Displays a memory page.
+     * @param page e.g. 0
+     */
+    void displayMemoryPage(int page);
+
+    /* Main Registers */
+
     uint8_t X;       // X-Register
     uint8_t Y;       // Y-Register
     uint8_t ACC;     // Accumulator
     uint16_t PC;     // Program Counter
     uint8_t SP;      // Stack Pointer
-    uint8_t SR;      // Status Register
+
     /* Status Flag Register */
 
+    uint8_t SR;      // Status Register
 
     /* Bus Handling */
-public:
 
     Bus *bus; // Pointer to the bus.
 
@@ -96,6 +119,7 @@ private:
         SEVENTH = 1 << 6,
         EIGHTH = 1 << 7
     };
+
     enum Flags {
        C = FIRST,
        Z = SECOND,
@@ -107,7 +131,9 @@ private:
        N = EIGHTH
     };
 
+
     void setStatusFlag(Flags flag, bool state);
+
     bool getStatusFlag(Flags flag);
 
     /* Main Addressing Modes */
