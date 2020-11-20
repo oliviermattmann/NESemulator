@@ -311,7 +311,7 @@ CPU6502::CPU6502(Bus *bus) {
   * Get the state of a given Flag
   */
   bool CPU6502::getStatusFlag(Flags flag) {
-      int8_t maskedBit = SR & flag;
+      uint8_t maskedBit = SR & flag;
       return (maskedBit > 0);               //if bit was set it will be greater than 0 otherwise it will be zero
   }
 
@@ -334,9 +334,10 @@ void CPU6502::run() {
  */
 void CPU6502::EXC_OP() {
     (this->*OP_TABLE[op_code].x)();
-    printf("%d\n" , addressparam);
-   (this->*OP_TABLE[op_code].funcP)();
-
+    std::cout << "| Addressparameter          :"<< addressparam << " |"<< std::endl;
+    std::cout << "| Addressparameter contents :"<< intToHexString(read(addressparam))  << " |"<< std::endl;
+    (this->*OP_TABLE[op_code].funcP)();
+    std::cout << "| Addressparameter contents :"<< intToHexString(read(addressparam))  << " |"<< std::endl;
 }
 
 /*Addressing modes*/
@@ -432,11 +433,11 @@ void CPU6502::izy() {
 
 /* Bus Handling */
 
-void CPU6502::write(uint16_t address, int8_t data) {
+void CPU6502::write(uint16_t address, uint8_t data) {
     bus->busWrite(address,data);
 }
 
-int8_t CPU6502::read(uint16_t address) {
+uint8_t CPU6502::read(uint16_t address) {
     return bus->busRead(address);
 }
 
@@ -599,56 +600,161 @@ void CPU6502::PLP(){
 //Logical
 
 void CPU6502::AND() {
-    printf("%d\n", read(addressparam));
-    CPU6502::ACC = ACC & read(addressparam);
-    printf("%d\n",ACC);
+    ACC = ACC & read(addressparam);
+    if (ACC == 0) {
+        setStatusFlag(Z, true);
+    }
+    if (ACC & EIGHTH) {
+        setStatusFlag(N, true);
+    }
+
 }
 
-void CPU6502::EOR(){}
+void CPU6502::EOR(){
+    ACC = ACC ^ read(addressparam);
+    if (ACC == 0) {
+        setStatusFlag(Z, true);
+    }
+    if (ACC & EIGHTH) {
+        setStatusFlag(N, true);
+    }
+}
 
-void CPU6502::ORA(){}
+void CPU6502::ORA(){
+    ACC = ACC | read(addressparam);
+    if (ACC == 0) {
+        setStatusFlag(Z, true);
+    }
+    if (ACC & EIGHTH) {
+        setStatusFlag(N, true);
+    }
+}
 
-void CPU6502::BIT(){}
+void CPU6502::BIT(){
+    uint8_t val = read(addressparam);
+    if ((ACC & val ) == 0) {
+        setStatusFlag(Z, true);
+    }
+    if (val & SEVENTH) {
+        setStatusFlag(V, true);
+    }
+    if (val & EIGHTH) {
+        setStatusFlag(N, true);
+    }
+}
 
 //Arithmetic
 
-void CPU6502::ADC(){}
+void CPU6502::ADC(){
+    uint16_t a = (uint16_t)ACC;
+    uint16_t b = (uint16_t) addressparam + getStatusFlag(C);
+    uint16_t c = a + b;
+    if ((~(a ^ b))&(a ^ c)&0x80) {
+        setStatusFlag(V, true);
+    }
 
-void CPU6502::SBC(){}
+    setStatusFlag(Z, c == 0);
 
-void CPU6502::CMP(){}
+    setStatusFlag(C, c > 255);
+    setStatusFlag(N, N & EIGHTH);
+    ACC = c & 0xFF;
+}
 
-void CPU6502::CPX(){}
+void CPU6502::SBC(){
+    uint16_t a = (uint16_t)ACC;
+    uint16_t b = (uint16_t) addressparam - (1 - getStatusFlag(C));
+    uint16_t c = a - b;
+    if ((~(a ^ b))&(a ^ c)&0x80) {
+        setStatusFlag(V, true);
+    }
 
-void CPU6502::CPY(){}
+    setStatusFlag(Z, c == 0);
+
+    setStatusFlag(C, c & 0xFF00);
+    setStatusFlag(N, N & EIGHTH);
+    ACC = c & 0xFF;
+
+
+}
+
+void CPU6502::CMP(){
+    setStatusFlag(Z ,ACC == read(addressparam));
+    setStatusFlag(C, ACC >= read(addressparam));
+    setStatusFlag(N, (uint8_t) (ACC - read(addressparam))&EIGHTH);
+}
+
+void CPU6502::CPX(){
+    setStatusFlag(Z ,X == read(addressparam));
+    setStatusFlag(C, X >= read(addressparam));
+    setStatusFlag(N, (uint8_t) (X - read(addressparam)) &EIGHTH);
+}
+
+void CPU6502::CPY(){
+    setStatusFlag(Z ,Y == read(addressparam));
+    setStatusFlag(C, Y >= read(addressparam));
+    setStatusFlag(N, (uint8_t) (Y - read(addressparam)) &EIGHTH);
+}
 
 
 //Increments/Decrements
 
-void CPU6502::INC(){}
-
-void CPU6502::INX(){}
-
-void CPU6502::INY(){}
-
-void CPU6502::DEC(){
-    printf("%d\n", read(addressparam));
-    write(addressparam, read(addressparam)-1);
-    printf("%d\n", read(addressparam));
+void CPU6502::INC(){
+    write(addressparam, read(addressparam)+1);
+    setStatusFlag(Z, read(addressparam) == 0);
+    setStatusFlag(N, read(addressparam) & EIGHTH);
 }
 
-void CPU6502::DEX(){}
+void CPU6502::INX(){
+    X = X + 1;
+    setStatusFlag(Z, X == 0);
+    setStatusFlag(N, X & EIGHTH);
+}
 
-void CPU6502::DEY(){}
+void CPU6502::INY(){
+    Y = Y + 1;
+    setStatusFlag(Z, Y == 0);
+    setStatusFlag(N, Y & EIGHTH);
+}
+
+void CPU6502::DEC(){
+    write(addressparam, read(addressparam)-1);
+    setStatusFlag(Z, read(addressparam) == 0);
+    setStatusFlag(N, read(addressparam) & EIGHTH);
+}
+
+void CPU6502::DEX(){
+    X = X - 1;
+    setStatusFlag(Z, X == 0);
+    setStatusFlag(N, X & EIGHTH);
+}
+
+void CPU6502::DEY(){
+    Y = Y - 1;
+    setStatusFlag(Z, Y == 0);
+    setStatusFlag(N, Y & EIGHTH);
+}
 
 
 //Shifts
 
-void CPU6502::ASL(){}
+void CPU6502::ASL(){
+    setStatusFlag(C, read(addressparam) & EIGHTH);
+    write(addressparam, (read(addressparam) >> 1));
+    setStatusFlag(N, read(addressparam) & EIGHTH);
+    setStatusFlag(Z, read(addressparam) == 0);
 
-void CPU6502::LSR(){}
+}
 
-void CPU6502::ROL(){}
+void CPU6502::LSR(){
+    setStatusFlag(C, read(addressparam) & FIRST);
+    write(addressparam, (read(addressparam) >> 1) & 0x80);
+    setStatusFlag(N, read(addressparam) & EIGHTH);
+    setStatusFlag(Z, read(addressparam) == 0);
+}
+
+void CPU6502::ROL(){
+
+}
 
 void CPU6502::ROR(){}
 
@@ -923,10 +1029,10 @@ void CPU6502::testInstruction(uint8_t opcode) {
     CPU6502::op_code = opcode;
     CPU6502::X = 0x07;
     CPU6502::Y = 0x05;
-    ACC = 0x10;
+    ACC = 0xFF;
 
     //zp nimmt 0x0001, abs auch 0X0002, imm benutzt die daten in 0x0001 als argument
-    CPU6502::write(0x0001, 0x17);
+    CPU6502::write(0x0001, 0xFF);
     CPU6502::write(0x0002, 0x01);
 
     CPU6502::write(0x0014, 0x02);
