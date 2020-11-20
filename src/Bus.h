@@ -18,9 +18,9 @@ public: Bus();
 
 public: ~Bus();
 
-public: int8_t busRead(uint16_t address);
+public: uint8_t busRead(uint16_t address);
 
-public: void busWrite(uint16_t address, int8_t data);
+public: void busWrite(uint16_t address, uint8_t data);
 
 };
 

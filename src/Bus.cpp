@@ -11,10 +11,10 @@ Bus::~Bus() {
     //does nothing
 }
 
-int8_t Bus::busRead(uint16_t address){
+uint8_t Bus::busRead(uint16_t address){
     return RAM[address];
 }
-void Bus::busWrite(uint16_t address, int8_t data){
+void Bus::busWrite(uint16_t address, uint8_t data){
     RAM[address] = data;
 }
 

@@ -85,14 +85,14 @@ public:
      * @param address ,address to write to.
      * @param data ,data to write.
      */
-    void write(uint16_t address, int8_t data);
+    void write(uint16_t address, uint8_t data);
 
     /**
      * Reads a byte from a given address.
      * @param address ,address to read from.
      * @return byte from given address.
      */
-    int8_t read(uint16_t address);
+    uint8_t read(uint16_t address);
 
     /* Operation-Code Handling */
 private:
