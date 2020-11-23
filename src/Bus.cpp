@@ -4,7 +4,7 @@
 #include "Bus.h"
 
 Bus::Bus(){
-    for(int8_t &text : RAM)
+    for(uint8_t & text : RAM)
         text = 0x00;
 }
 Bus::~Bus() {

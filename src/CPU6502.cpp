@@ -296,6 +296,20 @@ CPU6502::CPU6502(Bus *bus) {
 
 
 }
+
+/**
+ *  Runs the CPU6052.
+ */
+void CPU6502::run() {
+    while (1) {
+        op_code = read(CPU6502::PC);
+        CPU6502::EXC_OP();
+
+
+        break;
+    }
+}
+
 /**
  * Sets the given Status flag to given state
  */
@@ -310,24 +324,14 @@ CPU6502::CPU6502(Bus *bus) {
  /**
   * Get the state of a given Flag
   */
-  bool CPU6502::getStatusFlag(Flags flag) {
-      uint8_t maskedBit = SR & flag;
-      return (maskedBit > 0);               //if bit was set it will be greater than 0 otherwise it will be zero
+  uint8_t CPU6502::getStatusFlag(Flags flag) {
+      if ((SR&flag)== 0) {
+          return 0;
+      }
+      return 1;
+                    //if bit was set it will be greater than 0 otherwise it will be zero
   }
 
-
-/**
- *  Runs the CPU6052.
- */
-void CPU6502::run() {
-    while (1) {
-        op_code = read(CPU6502::PC);
-        CPU6502::EXC_OP();
-
-
-        break;
-    }
-}
 
 /**
  * Executes a single operation code.
@@ -374,29 +378,30 @@ void CPU6502::zpy() {
 
 void CPU6502::abs() {
     PC++;
-    int8_t lo = read(PC);
+    uint8_t lo = read(PC);
     PC++;
-    int8_t hi = read(PC);
+    uint8_t hi = read(PC);
     addressparam = (hi << 8) | lo;
 }
 //works
 void CPU6502::abx() {
     PC++;
-    int8_t lo = read(PC);
+    uint8_t lo = read(PC);
     PC++;
-    int8_t hi = read(PC);
+    uint8_t hi = read(PC);
     addressparam = (hi << 8) | lo;
     addressparam += this->X;
 }
 //works
 void CPU6502::aby() {
     PC++;
-    int8_t lo = read(PC);
+    uint8_t lo = read(PC);
     PC++;
-    int8_t hi = read(PC);
+    uint8_t hi = read(PC);
     addressparam = (hi << 8) | lo;
     addressparam += this->Y;
 }
+
 //this addressing mode is only used by branching instructions, the relative address can range from -128 to +127 of
 // the branch instruction
 void CPU6502::rel() {
@@ -406,24 +411,24 @@ void CPU6502::rel() {
 
 void CPU6502::ind() {
     PC++;
-    char lo =read(PC);
+    uint8_t lo =read(PC);
     PC++;
-    char hi = read(PC);
+    uint8_t hi = read(PC);
     addressparam = read((hi << 8) | lo);
 }
-//Doesnt work yet
+
 void CPU6502::izx() {
     PC++;
-    char lo = read((read(PC)+this->X)%256);
-    char hi = read((read(PC)+this->X + 1)%256);
+    uint8_t lo = read((read(PC)+this->X)%256);
+    uint8_t hi = read((read(PC)+this->X + 1)%256);
 
     addressparam = (hi << 8) | lo;
 }
-//Doesnt work yet
+
 void CPU6502::izy() {
     PC++;
-    char lo = read((read(PC))%256);
-    char hi = read((read(PC)+ 1)%256);
+    uint8_t lo = read((read(PC))%256);
+    uint8_t hi = read((read(PC)+ 1)%256);
 
 
     addressparam = ((hi << 8) | lo)+ this->Y;
@@ -651,6 +656,8 @@ void CPU6502::ADC(){
     uint16_t c = a + b;
     if ((~(a ^ b))&(a ^ c)&0x80) {
         setStatusFlag(V, true);
+    } else {
+        setStatusFlag(V, false);
     }
 
     setStatusFlag(Z, c == 0);
@@ -734,9 +741,7 @@ void CPU6502::DEY(){
     setStatusFlag(N, Y & EIGHTH);
 }
 
-
 //Shifts
-
 void CPU6502::ASL(){
     setStatusFlag(C, read(addressparam) & EIGHTH);
     write(addressparam, (read(addressparam) >> 1));
@@ -753,14 +758,23 @@ void CPU6502::LSR(){
 }
 
 void CPU6502::ROL(){
+    uint16_t temp = (uint16_t) (read(addressparam) << 1) | getStatusFlag(C);
+    setStatusFlag(C, read(addressparam)&EIGHTH);
+    setStatusFlag(Z, (temp & 0x00FF) == 0x0000);
+    setStatusFlag(N, temp & EIGHTH);
+    write(addressparam, temp&0x00FF);
 
 }
 
-void CPU6502::ROR(){}
-
+void CPU6502::ROR(){
+    uint16_t temp = (uint16_t) ((getStatusFlag(C) << 7 )| (read(addressparam) >> 1)) ;
+    setStatusFlag(C, read(addressparam)&FIRST);
+    setStatusFlag(Z, (temp & 0x00FF) == 0x0000);
+    setStatusFlag(N, temp & EIGHTH);
+    write(addressparam, temp&0x00FF);
+}
 
 //Jumps/Calls
-
 void CPU6502::JMP(){
     PC = addressparam;
     logger.debug(__FUNCTION__ ,
@@ -783,17 +797,15 @@ void CPU6502::RTS(){
     //(Return from Subroutine) The RTS instruction is used at the end of a subroutine to return to the calling routine.
     //It pulls the program counter (minus one) from the stack.
     SP++;                                                                   //adjust StackPointer to top element
-    int16_t low = (int16_t)bus->busRead(0x0100 + SP);                //get low-byte from stack
+    uint16_t low = (uint16_t)bus->busRead(0x0100 + SP);                //get low-byte from stack
     SP++;                                                                   //adjust StackPointer
-    int16_t high = (int16_t)(bus->busRead(0x0100 + SP) << 8);        //get high-byte from stack
+    uint16_t high = (uint16_t)(bus->busRead(0x0100 + SP) << 8);        //get high-byte from stack
     PC = high + low + 1;                                                    //set new ProgramCounter
     logger.debug(__FUNCTION__ ,
                  "Return from Subroutine");
 }
 
-
 //Branches
-
 void CPU6502::BCC(){
     PC++;
     if (getStatusFlag(C) == false) {
@@ -923,7 +935,6 @@ void CPU6502::SEC(){
                  "Set Carry Flag");
 }
 
-
 void CPU6502::SED(){
     setStatusFlag(D, true);
     logger.debug(__FUNCTION__ ,
@@ -935,7 +946,6 @@ void CPU6502::SEI(){
     logger.debug(__FUNCTION__ ,
                  "Set Interrupt Disable Flag");
 }
-
 
 void CPU6502::CLC(){
     setStatusFlag(C, false);

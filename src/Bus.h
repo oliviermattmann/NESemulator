@@ -12,7 +12,7 @@
 
 class Bus {
 
-public: int8_t RAM[2048];
+public: uint8_t RAM[2048];
 
 public: Bus();
 

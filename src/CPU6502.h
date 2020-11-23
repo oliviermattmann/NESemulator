@@ -16,48 +16,6 @@
 class CPU6502 {
 
 public:
-    /**
-     * Constructor for the CPU6502 emulating class.
-     * @param bus
-     */
-    CPU6502(Bus *bus);
-
-    /**
-     * Runs the CPU6502 Module.
-     */
-    void run();
-
-    /* DevOp functions */
-
-    void testInstruction(uint8_t opcode);
-
-    /**
-     * Converts an uint8_t integer to a hex string
-     * to improve code readability.
-     * @param val
-     */
-    static std::string intToHexString(uint8_t val);
-
-    /**
-     * Prints a memory range of the bus nicely formatted.
-     */
-    void displayMemoryRange(uint16_t start, uint16_t finish);
-
-    /**
-     * Displays a memory page.
-     * @param page e.g. 0
-     */
-    void displayMemoryPage(int page);
-
-    /**
-     * Displays Registers in the console
-     */
-    void displayRegisters();
-
-    /**
-     * Displays Flag status
-     */
-    void diplayFlags();
     /* Main Registers */
 
     uint8_t X;       // X-Register
@@ -81,6 +39,17 @@ public:
                                 //cycles are only increased with both bools are set to true
 
     /**
+     * Constructor for the CPU6502 emulating class.
+     * @param bus
+     */
+    CPU6502(Bus *bus);
+
+    /**
+     * Runs the CPU6502 Module.
+     */
+    void run();
+
+    /**
      * Writes a byte to a given address.
      * @param address ,address to write to.
      * @param data ,data to write.
@@ -93,6 +62,9 @@ public:
      * @return byte from given address.
      */
     uint8_t read(uint16_t address);
+
+
+
 
     /* Operation-Code Handling */
 private:
@@ -150,7 +122,8 @@ private:
 
     void setStatusFlag(Flags flag, bool state);
 
-    bool getStatusFlag(Flags flag);
+    uint8_t getStatusFlag(Flags flag);
+
 
     /* Main Addressing Modes */
 private:
@@ -219,11 +192,7 @@ private:
      */
     void izy();
 
-    // Suggestion:
-    // if an operation requires no special indexing we can
-    // point to an empty function, we avoid checking for nullptr
-    // in EXC_OP
-    void void_indexed() {}
+
 
     /* Operations of the CPU */
 
@@ -554,6 +523,39 @@ private:
     void RRA();
     void RLA();
 
+
+
+    /* DevOp functions */
+
+    void testInstruction(uint8_t opcode);
+
+    /**
+     * Converts an uint8_t integer to a hex string
+     * to improve code readability.
+     * @param val
+     */
+    static std::string intToHexString(uint8_t val);
+
+    /**
+     * Prints a memory range of the bus nicely formatted.
+     */
+    void displayMemoryRange(uint16_t start, uint16_t finish);
+
+    /**
+     * Displays a memory page.
+     * @param page e.g. 0
+     */
+    void displayMemoryPage(int page);
+
+    /**
+     * Displays Registers in the console
+     */
+    void displayRegisters();
+
+    /**
+     * Displays Flag status
+     */
+    void diplayFlags();
 
 };
 
