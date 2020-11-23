@@ -82,8 +82,9 @@ private:
 
     uint8_t op_code;
     uint16_t addressparam;
-    int8_t address_rel;           //needed for branching instructions
-
+    uint8_t data;           //needed for arithmetic functions
+    int8_t address_rel;     //needed for branching instructions
+    bool implied;
 
     OP_CODE OP_TABLE[256]{};
 

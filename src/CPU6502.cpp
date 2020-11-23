@@ -341,6 +341,7 @@ void CPU6502::EXC_OP() {
     std::cout << "| Addressparameter          :"<< addressparam << " |"<< std::endl;
     std::cout << "| Addressparameter contents :"<< intToHexString(read(addressparam))  << " |"<< std::endl;
     (this->*OP_TABLE[op_code].funcP)();
+    implied = false;
     std::cout << "| Addressparameter contents :"<< intToHexString(read(addressparam))  << " |"<< std::endl;
 }
 
@@ -350,7 +351,7 @@ void CPU6502::EXC_OP() {
 
 //works
 void CPU6502::imp() {
-
+    implied = true;
 }
 void CPU6502::imm() {
     PC++;
@@ -743,35 +744,74 @@ void CPU6502::DEY(){
 
 //Shifts
 void CPU6502::ASL(){
-    setStatusFlag(C, read(addressparam) & EIGHTH);
-    write(addressparam, (read(addressparam) >> 1));
-    setStatusFlag(N, read(addressparam) & EIGHTH);
-    setStatusFlag(Z, read(addressparam) == 0);
+    if(implied) {
+        data = ACC;
+    } else {
+        data = read(addressparam);
+    }
+    setStatusFlag(C, data & EIGHTH);
+    data = data << 1;
+
+    setStatusFlag(N, data & EIGHTH);
+    setStatusFlag(Z, data == 0);
+    if(implied) {
+        ACC = data;
+    } else {
+        write(addressparam, data);
+    }
 
 }
 
 void CPU6502::LSR(){
-    setStatusFlag(C, read(addressparam) & FIRST);
-    write(addressparam, (read(addressparam) >> 1) & 0x80);
-    setStatusFlag(N, read(addressparam) & EIGHTH);
-    setStatusFlag(Z, read(addressparam) == 0);
+    if(implied) {
+        data = ACC;
+    } else {
+        data = read(addressparam);
+    }
+    setStatusFlag(C, data & FIRST);
+    data = data >> 1;
+    setStatusFlag(N, data & EIGHTH);
+    setStatusFlag(Z, data == 0);
+
+    if(implied) {
+        ACC = data & 0x00FF;
+    } else {
+        write(addressparam, data & 0x00FF);
+    }
 }
 
 void CPU6502::ROL(){
-    uint16_t temp = (uint16_t) (read(addressparam) << 1) | getStatusFlag(C);
-    setStatusFlag(C, read(addressparam)&EIGHTH);
-    setStatusFlag(Z, (temp & 0x00FF) == 0x0000);
-    setStatusFlag(N, temp & EIGHTH);
-    write(addressparam, temp&0x00FF);
+    if(implied){
+        data = ACC << 1 | getStatusFlag(C);
+    } else {
+        data = (read(addressparam) << 1) | getStatusFlag(C);
+    }
+    setStatusFlag(C, data&EIGHTH);
+    setStatusFlag(Z, (data & 0x00FF) == 0x0000);
+    setStatusFlag(N, data & EIGHTH);
+    if (implied) {
+        ACC = data & 0x00FF;
+    } else {
+        write(addressparam, data & 0x00FF);
+    }
 
 }
 
 void CPU6502::ROR(){
-    uint16_t temp = (uint16_t) ((getStatusFlag(C) << 7 )| (read(addressparam) >> 1)) ;
-    setStatusFlag(C, read(addressparam)&FIRST);
-    setStatusFlag(Z, (temp & 0x00FF) == 0x0000);
-    setStatusFlag(N, temp & EIGHTH);
-    write(addressparam, temp&0x00FF);
+    if (implied) {
+        data = ((getStatusFlag(C) << 7))|(ACC >> 1);
+        setStatusFlag(C, ACC&FIRST);
+    } else {
+        data = ((getStatusFlag(C) << 7) | (read(addressparam) >> 1));
+        setStatusFlag(C, read(addressparam)&FIRST);
+    }
+    setStatusFlag(Z, (data & 0x00FF) == 0x0000);
+    setStatusFlag(N, data & EIGHTH);
+    if (implied) {
+        ACC = data & 0x00FF;
+    } else {
+        write(addressparam, data & 0x00FF);
+    }
 }
 
 //Jumps/Calls
