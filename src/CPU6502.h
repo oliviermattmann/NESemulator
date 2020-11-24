@@ -67,7 +67,6 @@ public:
 
 
     /* Operation-Code Handling */
-private:
     /**
      *  OP_CODE struct emulates an entry in the
      *  Operation-Code-Matrix and contains within
@@ -120,14 +119,19 @@ private:
        N = EIGHTH
     };
 
-
     void setStatusFlag(Flags flag, bool state);
 
     uint8_t getStatusFlag(Flags flag);
 
 
-    /* Main Addressing Modes */
 private:
+
+    void setNegative(uint8_t val);
+
+    void setZero(uint8_t val);
+
+
+    /* Main Addressing Modes */
     /**
      * Implied
      */
@@ -525,7 +529,7 @@ private:
     void RLA();
 
 
-
+public:
     /* DevOp functions */
 
     void testInstruction(uint8_t opcode);

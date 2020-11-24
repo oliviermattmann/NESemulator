@@ -27,7 +27,7 @@ CPU6502::CPU6502(Bus *bus) {
     this->PC = 0x0;
     this->SR = 0x00;
 
-    this->SP = 0xFD;
+    this->SP = 0xFF;
 
     op_code = 0x0;
     addressparam = 0;
@@ -451,91 +451,79 @@ uint8_t CPU6502::read(uint16_t address) {
 /* OP functions */
 
 void CPU6502::LDA(){
-    uint8_t value = read(addressparam);
-    if (value == 0) {
-        setStatusFlag(Z,true);
-    } else {
-        setStatusFlag(Z,false);
-    }
-    if (value & SEVENTH) {
-        setStatusFlag(N,true);
-    } else {
-        setStatusFlag(N,false);
-    }
+    uint8_t value = this->read(addressparam);
+    this->setZero(value);
+    this->setNegative(value);
     this->ACC = value;
+    logger.debug(__FUNCTION__ ,
+                 "loaded accumulator.");
 }
 
-void CPU6502::LDX(){}
+void CPU6502::LDX(){
+    uint8_t value = this->read(addressparam);
+    this->setZero(value);
+    this->setNegative(value);
+    this->X = value;
+    logger.debug(__FUNCTION__ ,
+                 "loaded x register.");
+}
 
-void CPU6502::LDY(){}
+void CPU6502::LDY(){
+    uint8_t value = this->read(addressparam);
+    this->setZero(value);
+    this->setNegative(value);
+    this->Y = value;
+    logger.debug(__FUNCTION__ ,
+                 "loaded y register.");
+}
 
-void CPU6502::STA(){}
+void CPU6502::STA(){
+    this->write(addressparam, this->ACC);
+    logger.debug(__FUNCTION__ ,
+                 "stored accumulator.");
+}
 
-void CPU6502::STX(){}
+void CPU6502::STX(){
+    this->write(addressparam, this->X);
+    logger.debug(__FUNCTION__ ,
+                 "stored x register.");
+}
 
-void CPU6502::STY(){}
+void CPU6502::STY(){
+    this->write(addressparam, this->Y);
+    logger.debug(__FUNCTION__ ,
+                 "stored y register.");
+}
 
 
 //Register Transfers
 void CPU6502::TAX(){
-    if (this->ACC & SEVENTH) {
-        this->setStatusFlag(N, true);
-    } else {
-        this->setStatusFlag(N, false);
-    }
-    if (this->ACC == 0) {
-        this->setStatusFlag(Z, true);
-    } else {
-        this->setStatusFlag(Z, false);
-    }
+    this->setNegative(this->ACC);
+    this->setZero(this->ACC);
     this->X = this->ACC;
     logger.debug(__FUNCTION__ ,
                  "set x register to accumulator.");
 }
 
 void CPU6502::TAY(){
-    if (this->ACC & SEVENTH) {
-        this->setStatusFlag(N, true);
-    } else {
-        this->setStatusFlag(N, false);
-    }
-    if (this->ACC == 0) {
-        this->setStatusFlag(Z, true);
-    } else {
-        this->setStatusFlag(Z, false);
-    }
+    this->setNegative(this->ACC);
+    this->setZero(this->ACC);
     this->Y = this->ACC;
     logger.debug(__FUNCTION__ ,
                  "set y register to accumulator.");
 }
 
 void CPU6502::TXA(){
-    if (this->X & SEVENTH) {
-        this->setStatusFlag(N, true);
-    } else {
-        this->setStatusFlag(N, false);
-    }
-    if (this->X == 0) {
-        this->setStatusFlag(Z, true);
-    } else {
-        this->setStatusFlag(Z, false);
-    }
+    this->setNegative(this->X);
+    this->setZero(this->X);
     this->ACC = this->X;
     logger.debug(__FUNCTION__ ,
                  "set accumulator to x register.");
 }
 
 void CPU6502::TYA(){
-    if (this->Y & SEVENTH) {
-        this->setStatusFlag(N, true);
-    } else {
-        this->setStatusFlag(N, false);
-    }
-    if (this->Y == 0) {
-        this->setStatusFlag(Z, true);
-    } else {
-        this->setStatusFlag(Z, false);
-    }
+    this->setNegative(this->Y);
+    this->setZero(this->Y);
     this->ACC = this->Y;
     logger.debug(__FUNCTION__ ,
                  "set accumulator to y register.");
@@ -544,16 +532,8 @@ void CPU6502::TYA(){
 
 //Stack Operations
 void CPU6502::TSX(){
-    if (this->SP & SEVENTH) {
-        this->setStatusFlag(N, true);
-    } else {
-        this->setStatusFlag(N, false);
-    }
-    if (this->SP == 0) {
-        this->setStatusFlag(Z, true);
-    } else {
-        this->setStatusFlag(Z, false);
-    }
+    this->setNegative(this->SP);
+    this->setZero(this->SP);
     this->X = this->SP;
     logger.debug(__FUNCTION__ ,
                  "set x register to stack pointer.");
@@ -566,39 +546,31 @@ void CPU6502::TXS(){
 }
 
 void CPU6502::PHA(){
+    this->write(0x100 + this->SP, this->ACC);
     this->SP--;
-    write(0x100 + this->SP, this->ACC);
     logger.debug(__FUNCTION__ ,
                  "push accumulator on stack.");
 }
 
 void CPU6502::PHP(){
+    this->write(0x100 + this->SP, this->SR);
     this->SP--;
-    write(0x100 + this->SP, this->SR);
     logger.debug(__FUNCTION__ ,
                  "push status register on stack.");
 }
 
 void CPU6502::PLA(){
-    this->ACC = read(0x100 + this->SP);
     this->SP++;
-    if (this->ACC & SEVENTH) {
-        this->setStatusFlag(N, true);
-    } else {
-        this->setStatusFlag(N, false);
-    }
-    if (this->ACC == 0) {
-        this->setStatusFlag(Z, true);
-    } else {
-        this->setStatusFlag(Z, false);
-    }
+    this->ACC = read(0x100 + this->SP);
+    this->setNegative(this->ACC);
+    this->setZero(this->ACC);
     logger.debug(__FUNCTION__ ,
                  "pull accumulator from stack.");
 }
 
 void CPU6502::PLP(){
-    this->SR = read(0x100 + this->SP);
     this->SP++;
+    this->SR = read(0x100 + this->SP);
     logger.debug(__FUNCTION__ ,
                  "pull status register from stack.");
 }
@@ -1138,7 +1110,11 @@ void CPU6502::displayMemoryRange(uint16_t start, uint16_t finish) {
     << std::string(45, '-') << std::endl;
     int i = 0;
     while (start <= finish) {
-        std::cout << "| 0x" << std::setfill('0') <<  intToHexString(this->read(start)).c_str() << " |";
+        std::cout
+        << "| 0x"
+        << std::setfill('0')
+        <<  intToHexString(this->read(start)).c_str()
+        << " |";
         start++;
         i++;
         if (i % 16 == 0) {
@@ -1149,7 +1125,7 @@ void CPU6502::displayMemoryRange(uint16_t start, uint16_t finish) {
 
 void CPU6502::displayMemoryPage(int page) {
     uint16_t addr = page*0xFF;
-    displayMemoryRange(addr, addr + 0xFF);
+    displayMemoryRange(addr + page, addr + 0xFF + page);
 }
 
 void CPU6502::displayRegisters() {
@@ -1171,4 +1147,20 @@ void CPU6502::diplayFlags() {
     << "| D : " << getStatusFlag(D) << " |" << std::endl
     << "| V : " << getStatusFlag(V) << " |" << std::endl
     << "| N : " << getStatusFlag(N) << " |" << std::endl << std::endl;
+}
+
+void CPU6502::setNegative(uint8_t val) {
+    if (val & EIGHTH) {
+        this->setStatusFlag(N, true);
+    } else {
+        this->setStatusFlag(N, false);
+    }
+}
+
+void CPU6502::setZero(uint8_t val) {
+    if (val == 0) {
+        this->setStatusFlag(Z, true);
+    } else {
+        this->setStatusFlag(Z, false);
+    }
 }
