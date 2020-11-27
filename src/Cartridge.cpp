@@ -23,7 +23,7 @@ void Cartridge::getHeader(const std::string& fileName) {
     for(int i = 0; i < size; i++) {
         inFile.read(&byte, 1);
         result[i] = byte;
-        std::cout << hex << (int)byte<< " ";
+        std::cout <<(int)byte<< " ";
     }
 
 
