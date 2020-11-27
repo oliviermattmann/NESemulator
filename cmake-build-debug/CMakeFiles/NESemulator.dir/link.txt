@@ -1,3 +1,0 @@
-C:\Users\Startklar\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\202.7319.72\bin\cmake\win\bin\cmake.exe -E rm -f CMakeFiles\NESemulator.dir/objects.a
-C:\MinGW\bin\ar.exe cr CMakeFiles\NESemulator.dir/objects.a @CMakeFiles\NESemulator.dir\objects1.rsp
-C:\MinGW\bin\g++.exe -g   -Wl,--whole-archive CMakeFiles\NESemulator.dir/objects.a -Wl,--no-whole-archive  -o NESemulator.exe -Wl,--out-implib,libNESemulator.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\NESemulator.dir\linklibs.rsp

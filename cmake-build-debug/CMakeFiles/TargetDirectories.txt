@@ -1,3 +1,0 @@
-C:/Users/Startklar/Documents/GitRepos/CAOSproject/NESemulator/cmake-build-debug/CMakeFiles/NESemulator.dir
-C:/Users/Startklar/Documents/GitRepos/CAOSproject/NESemulator/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/Startklar/Documents/GitRepos/CAOSproject/NESemulator/cmake-build-debug/CMakeFiles/rebuild_cache.dir

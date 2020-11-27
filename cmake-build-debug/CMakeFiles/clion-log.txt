@@ -1,5 +1,0 @@
-C:\Users\Startklar\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\202.7319.72\bin\cmake\win\bin\cmake.exe -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - MinGW Makefiles" C:\Users\Startklar\Documents\GitRepos\CAOSproject\NESemulator
--- Found SFML 2.5.1 in C:/Users/Startklar/Documents/GitRepos/CAOSproject/NESemulator/external/SFML/lib/cmake/SFML
--- Configuring done
--- Generating done
--- Build files have been written to: C:/Users/Startklar/Documents/GitRepos/CAOSproject/NESemulator/cmake-build-debug
