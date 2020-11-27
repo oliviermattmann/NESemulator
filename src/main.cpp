@@ -9,7 +9,7 @@ int main(){
 
     Bus *bus = new Bus();
     CPU6502 *cpu = new CPU6502(bus);
-    Cartridge *cartridge = new Cartridge("C:/Users/matia/OneDrive/Escritorio/Projects/RomTest/cpu_dummy_reads.nes");
+    Cartridge *cartridge = new Cartridge("../roms/DonkeyKong.nes");
 
     /*cpu->write(0x0, 0x1);
     cpu->write(0x3, 0xFF);

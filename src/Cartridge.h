@@ -22,11 +22,23 @@ public:
     uint8_t nBanksPrg;
     uint8_t nBanksChr;
     uint8_t mapper_id;
-
+    uint8_t mirroring;
+    uint8_t trainer;
 
 
     Cartridge(const std::string& fileName);
-    void getHeader(const std::string& fileName);
+    void getHeader(vector<uint8_t> content);
+};
+
+enum BitMask {
+    FIRST = 1 << 0,
+    SECOND = 1 << 1,
+    THIRD = 1 << 2,
+    FOURTH = 1 << 3,
+    FIFTH = 1 << 4,
+    SIXTH = 1 << 5,
+    SEVENTH = 1 << 6,
+    EIGHTH = 1 << 7
 };
 
 

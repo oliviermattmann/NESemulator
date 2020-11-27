@@ -4,40 +4,55 @@
 
 #include <fstream>
 #include "Cartridge.h"
+#include "CPU6502.h"
 
 Cartridge::Cartridge(const std::string& fileName) {
 
+    std::ifstream stream(fileName, std::ios::in | std::ios::binary);
+    std::vector<uint8_t> contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 
+    for(auto i: contents) {
+        int value = i;
+    }
 
-    getHeader(fileName);
+    std::cout << "file size: " << contents.size() << std::endl;
+    stream.close();
+
+    getHeader(contents);
     std::cout << (int)nBanksChr << " " << (int)nBanksPrg << " "<<  (int) mapper_id;
+
+    vector<uint8_t>::const_iterator firstPrg = contents.begin() + 16 + trainer*512;
+    vector<uint8_t>::const_iterator lastPrg = contents.begin() + (16 + trainer*512) + 16384*nBanksPrg;
+    vector<uint8_t>::const_iterator lastChr = contents.begin() + (16 + trainer*512) + 16384*nBanksPrg + 8192*nBanksChr;
+    vector<uint8_t> newVec1(firstPrg, lastPrg);
+    vector<uint8_t> newVec2(lastPrg,lastChr);
+
+    prgData = newVec1;
+    chrData = newVec2;
+
+    std::cout << std::endl << prgData.size() << " " << chrData.size();
+
 
 
 }
 
-void Cartridge::getHeader(const std::string& fileName) {
-    ifstream inFile(fileName, ios::binary);
-    uint8_t size = 16;
-    uint8_t result [16];
-    char byte;
-    for(int i = 0; i < size; i++) {
-        inFile.read(&byte, 1);
-        result[i] = byte;
-        std::cout <<(int)byte<< " ";
-    }
+void Cartridge::getHeader(const vector<uint8_t> content) {
 
 
 
-    nBanksPrg =  result[4];
-    nBanksChr =  result[5];
+    nBanksPrg =  content[4];
+    nBanksChr =  content[5];
+    mapper_id = (((content[7] >> 4) << 4)| ((content[6]) >> 4));
+    trainer = content[6] & THIRD;
+    mirroring = content[6] & FIRST;
 
-    std::cout << (result[7] >> 4) << " " <<  (result[6] >> 4) << " ";
-    mapper_id = (((result[7] >> 4) << 4)| ((result[6]) >> 4));
+    //inFile.read(&byte, 16384*nBanksPrg);
 
 
 
 
 
 
-    inFile.close();
+
+
 }
