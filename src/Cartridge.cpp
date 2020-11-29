@@ -6,6 +6,11 @@
 #include "Cartridge.h"
 #include "CPU6502.h"
 
+Cartridge::Cartridge() {
+    return;
+}
+
+
 Cartridge::Cartridge(const std::string& fileName) {
 
     std::ifstream stream(fileName, std::ios::in | std::ios::binary);
@@ -22,37 +27,25 @@ Cartridge::Cartridge(const std::string& fileName) {
     std::cout << (int)nBanksChr << " " << (int)nBanksPrg << " "<<  (int) mapper_id;
 
     vector<uint8_t>::const_iterator firstPrg = contents.begin() + 16 + trainer*512;
-    vector<uint8_t>::const_iterator lastPrg = contents.begin() + (16 + trainer*512) + 16384*nBanksPrg;
-    vector<uint8_t>::const_iterator lastChr = contents.begin() + (16 + trainer*512) + 16384*nBanksPrg + 8192*nBanksChr;
+    vector<uint8_t>::const_iterator lastPrg = contents.begin() + (16 + trainer*512) + BANKSIZE*nBanksPrg;
+    vector<uint8_t>::const_iterator lastChr = contents.begin() + (16 + trainer*512) + BANKSIZE*nBanksPrg + (BANKSIZE/2)*nBanksChr;
     vector<uint8_t> newVec1(firstPrg, lastPrg);
     vector<uint8_t> newVec2(lastPrg,lastChr);
 
     prgData = newVec1;
+    if(nBanksPrg == 1) {
+        prgData.insert(prgData.end(), newVec1.begin(), newVec1.end());
+    }
+
     chrData = newVec2;
 
     std::cout << std::endl << prgData.size() << " " << chrData.size();
-
-
-
 }
 
 void Cartridge::getHeader(const vector<uint8_t> content) {
-
-
-
     nBanksPrg =  content[4];
     nBanksChr =  content[5];
     mapper_id = (((content[7] >> 4) << 4)| ((content[6]) >> 4));
     trainer = content[6] & THIRD;
     mirroring = content[6] & FIRST;
-
-    //inFile.read(&byte, 16384*nBanksPrg);
-
-
-
-
-
-
-
-
 }

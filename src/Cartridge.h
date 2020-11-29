@@ -10,9 +10,9 @@
 #include<vector>
 using namespace std;
 
-#include "Bus.h"
 #include "Mapper.h"
 #include <fstream>
+
 class Cartridge {
 public:
     std::vector<uint8_t> prgData;
@@ -25,6 +25,9 @@ public:
     uint8_t mirroring;
     uint8_t trainer;
 
+    unsigned int BANKSIZE = 16384;
+
+    Cartridge();
 
     Cartridge(const std::string& fileName);
     void getHeader(vector<uint8_t> content);
