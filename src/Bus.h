@@ -6,21 +6,28 @@
 #ifndef NESEMULATOR_BUS_H
 #define NESEMULATOR_BUS_H
 #include <cstdint>
-
+#include "Cartridge.h"
+class Cartridge;
 
 
 
 class Bus {
 
-public: uint8_t RAM[2048];
+public:
+    uint8_t RAM[2048];
 
-public: Bus();
+    Cartridge cartridge;
 
-public: ~Bus();
 
-public: uint8_t busRead(uint16_t address);
+    Bus();
 
-public: void busWrite(uint16_t address, uint8_t data);
+    ~Bus();
+
+    uint8_t busRead(uint16_t address);
+
+    void busWrite(uint16_t address, uint8_t data);
+
+    void insertCartridge(Cartridge cartridge);
 
 };
 

@@ -24,7 +24,7 @@ CPU6502::CPU6502(Bus *bus) {
     this->X = 0x0;
     this->Y = 0x0;
     this->ACC = 0x0;
-    this->PC = 0x0;
+    this->PC = 0x4020;
     this->SR = 0x00;
 
     this->SP = 0xFF;
@@ -305,8 +305,6 @@ void CPU6502::run() {
         op_code = read(CPU6502::PC);
         CPU6502::EXC_OP();
 
-
-        break;
     }
 }
 
@@ -343,6 +341,7 @@ void CPU6502::EXC_OP() {
     (this->*OP_TABLE[op_code].funcP)();
     implied = false;
     std::cout << "| Addressparameter contents :"<< intToHexString(read(addressparam))  << " |"<< std::endl;
+    PC++;
 }
 
 /*Addressing modes*/
