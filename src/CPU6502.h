@@ -6,10 +6,10 @@
 #ifndef NESEMULATOR_CPU6502_H
 #define NESEMULATOR_CPU6502_H
 #include <cstdint>
-#include "Bus.h"
 #include <stack>
 #include <string>
 
+class Bus;
 /**
  * Central processing unit emulating class.
  */
@@ -30,24 +30,27 @@ public:
 
     /* Bus Handling */
 
-    Bus *bus; // Pointer to the bus.
+    Bus *bus = nullptr; // Pointer to the bus.
 
     /* cycle Handling */
     uint8_t OPcycles;
     bool addCycleInc;           //some addressing modes can cause an increase in cycles
     bool opCycleInc;            //some opcodes can cause an increase in cycles
                                 //cycles are only increased with both bools are set to true
+    uint8_t cycle;
 
     /**
      * Constructor for the CPU6502 emulating class.
      * @param bus
      */
-    CPU6502(Bus *bus);
+    CPU6502();
 
     /**
      * Runs the CPU6502 Module.
      */
     void run();
+
+    void bindToBus(Bus *ourBus) {bus = ourBus;}
 
     /**
      * Writes a byte to a given address.
@@ -86,6 +89,11 @@ public:
     bool implied;
 
     OP_CODE OP_TABLE[256]{};
+
+    /**
+     * Clocks the CPU and calls the exc_op function
+     */
+     void clock();
 
     /**
     * Executes the saved Operation Code.

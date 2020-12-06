@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
+#include "Bus.h"
 
 /**
  * Constructor for the CPU6502 emulating class.
@@ -16,23 +17,27 @@
  */
 CompactLogger logger = CompactLogger("CPU6502_log.txt");
 
-CPU6502::CPU6502(Bus *bus) {
+CPU6502::CPU6502() {
     /* Bus */
-    this->bus = bus;
 
     /* Set Registers to 0 */
     this->X = 0x0;
     this->Y = 0x0;
     this->ACC = 0x0;
     this->PC = 0x4020;
+    //this->PC = 0xC000;        to use nestest.nes use this line as starting program counter
     this->SR = 0x00;
 
-    this->SP = 0xFF;
+    this->SP = 0xFD;
 
     op_code = 0x0;
     addressparam = 0;
     address_rel = 0;
     setStatusFlag(B2, true);        //this unused Flag is always true;
+
+    cycle = 0;
+    addCycleInc = false;
+    opCycleInc = false;
 
     //Initializing OP_TABLE
     //KIL if op_code not set
@@ -302,9 +307,9 @@ CPU6502::CPU6502(Bus *bus) {
  */
 void CPU6502::run() {
     while (1) {
-        op_code = read(CPU6502::PC);
-        CPU6502::EXC_OP();
-
+        //op_code = read(CPU6502::PC);
+        //CPU6502::EXC_OP();
+        clock();
     }
 }
 
@@ -315,7 +320,7 @@ void CPU6502::run() {
      if(state) {
          SR |= flag;        //if bit of flag is not already 1, it will be set to 1
      } else {
-         SR &= flag;        //if bit of flag is not already 0, it will be set to 0
+         SR &= (0xFF-flag);        //if bit of flag is not already 0, it will be set to 0
      }
  }
 
@@ -330,18 +335,35 @@ void CPU6502::run() {
                     //if bit was set it will be greater than 0 otherwise it will be zero
   }
 
+void CPU6502::clock() {
+      if (cycle == 0) {
+          op_code = read(PC);
+          cycle = OP_TABLE[op_code].cycles;
+          EXC_OP();
+          if (addCycleInc && opCycleInc) {
+              cycle++;
+          }
+          addCycleInc = false;
+          opCycleInc = false;
+      }
+      cycle--;
+  }
 
 /**
  * Executes a single operation code.
  */
 void CPU6502::EXC_OP() {
+    std::cout << "| PC:"<< intToHexString(PC)  << " |"<< std::endl;
     (this->*OP_TABLE[op_code].x)();
+    std::cout << "| OPCODE:"<< intToHexString(op_code)  << " |"<< std::endl;
+    std::cout << "| Cycles needed:"<< int(this->cycle)  << " |"<< std::endl;
     std::cout << "| Addressparameter          :"<< addressparam << " |"<< std::endl;
-    std::cout << "| Addressparameter contents :"<< intToHexString(read(addressparam))  << " |"<< std::endl;
     (this->*OP_TABLE[op_code].funcP)();
+    std::cout << "| SP: "<< int(SP) << " |"<< std::endl;
+    displayRegisters();
+    diplayFlags();
+    std::cout << "_________________________________________"<< std::endl;
     implied = false;
-    std::cout << "| Addressparameter contents :"<< intToHexString(read(addressparam))  << " |"<< std::endl;
-    PC++;
 }
 
 /*Addressing modes*/
@@ -351,10 +373,12 @@ void CPU6502::EXC_OP() {
 //works
 void CPU6502::imp() {
     implied = true;
+    PC++;
 }
 void CPU6502::imm() {
     PC++;
     addressparam = PC;
+    PC++;
 }
 void CPU6502::acc() {
 }
@@ -362,6 +386,7 @@ void CPU6502::acc() {
 void CPU6502::zp() {
     PC++;
     addressparam = read(PC);
+    PC++;
 }
 
 void CPU6502::zpx() {
@@ -391,6 +416,9 @@ void CPU6502::abx() {
     uint8_t hi = read(PC);
     addressparam = (hi << 8) | lo;
     addressparam += this->X;
+    //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
+    //did the plus X cause a page cross?
+    addCycleInc = ((addressparam & 0xff00) != (hi<<8));
 }
 //works
 void CPU6502::aby() {
@@ -400,6 +428,9 @@ void CPU6502::aby() {
     uint8_t hi = read(PC);
     addressparam = (hi << 8) | lo;
     addressparam += this->Y;
+    //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
+    //did the plus Y cause a page cross?
+    addCycleInc = ((addressparam & 0xff00) != (hi<<8));
 }
 
 //this addressing mode is only used by branching instructions, the relative address can range from -128 to +127 of
@@ -430,8 +461,10 @@ void CPU6502::izy() {
     uint8_t lo = read((read(PC))%256);
     uint8_t hi = read((read(PC)+ 1)%256);
 
-
     addressparam = ((hi << 8) | lo)+ this->Y;
+    //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
+    //did the plus x cause a page cross?
+    addCycleInc = ((addressparam & 0xff00) != (hi<<8));
 }
 
 
@@ -450,6 +483,9 @@ uint8_t CPU6502::read(uint16_t address) {
 /* OP functions */
 
 void CPU6502::LDA(){
+    //possible it needs an additional cycle
+    opCycleInc = true;
+
     uint8_t value = this->read(addressparam);
     this->setZero(value);
     this->setNegative(value);
@@ -459,6 +495,9 @@ void CPU6502::LDA(){
 }
 
 void CPU6502::LDX(){
+    //possible it needs an additional cycle
+    opCycleInc = true;
+
     uint8_t value = this->read(addressparam);
     this->setZero(value);
     this->setNegative(value);
@@ -468,6 +507,9 @@ void CPU6502::LDX(){
 }
 
 void CPU6502::LDY(){
+    //possible it needs an additional cycle
+    opCycleInc = true;
+
     uint8_t value = this->read(addressparam);
     this->setZero(value);
     this->setNegative(value);
@@ -577,6 +619,9 @@ void CPU6502::PLP(){
 //Logical
 
 void CPU6502::AND() {
+    //possible it needs an additional cycle
+    opCycleInc = true;
+
     ACC = ACC & read(addressparam);
     if (ACC == 0) {
         setStatusFlag(Z, true);
@@ -588,6 +633,9 @@ void CPU6502::AND() {
 }
 
 void CPU6502::EOR(){
+    //possible it needs an additional cycle
+    opCycleInc = true;
+
     ACC = ACC ^ read(addressparam);
     if (ACC == 0) {
         setStatusFlag(Z, true);
@@ -598,6 +646,9 @@ void CPU6502::EOR(){
 }
 
 void CPU6502::ORA(){
+    //possible it needs an additional cycle
+    opCycleInc = true;
+
     ACC = ACC | read(addressparam);
     if (ACC == 0) {
         setStatusFlag(Z, true);
@@ -623,6 +674,9 @@ void CPU6502::BIT(){
 //Arithmetic
 
 void CPU6502::ADC(){
+    //possible it needs an additional cycle
+    opCycleInc = true;
+
     uint16_t a = (uint16_t)ACC;
     uint16_t b = (uint16_t) addressparam + getStatusFlag(C);
     uint16_t c = a + b;
@@ -640,6 +694,9 @@ void CPU6502::ADC(){
 }
 
 void CPU6502::SBC(){
+    //possible it needs an additional cycle
+    opCycleInc = true;
+
     uint16_t a = (uint16_t)ACC;
     uint16_t b = (uint16_t) addressparam - (1 - getStatusFlag(C));
     uint16_t c = a - b;
@@ -657,6 +714,9 @@ void CPU6502::SBC(){
 }
 
 void CPU6502::CMP(){
+    //possible it needs an additional cycle
+    opCycleInc = true;
+
     setStatusFlag(Z ,ACC == read(addressparam));
     setStatusFlag(C, ACC >= read(addressparam));
     setStatusFlag(N, (uint8_t) (ACC - read(addressparam))&EIGHTH);
