@@ -353,13 +353,13 @@ void CPU6502::clock() {
  * Executes a single operation code.
  */
 void CPU6502::EXC_OP() {
-    std::cout << "| PC:"<< intToHexString(PC)  << " |"<< std::endl;
+    std::cout << "| PC: 0x"<< std::setfill('0') << std::setw(4)<< std::hex << PC  << " |"<< std::endl;
     (this->*OP_TABLE[op_code].x)();
-    std::cout << "| OPCODE                    :"<< intToHexString(op_code)  << " |"<< std::endl;
-    std::cout << "| Cycles needed             :"<< int(this->cycle)  << " |"<< std::endl;
-    std::cout << "| Addressparameter          :"<< intToHexString(addressparam) << " |"<< std::endl;
+    std::cout << "| OPCODE                    : 0x"<< std::setfill('0') << std::setw(2)<< std::hex << int (op_code)  << " |"<< std::endl;
+    std::cout << "| Cycles needed             : "<< int(this->cycle)  << " |"<< std::endl;
+    std::cout << "| Addressparameter          : 0x"<< std::setfill('0') << std::setw(4)<< std::hex << int(addressparam) << " |"<< std::endl;
     (this->*OP_TABLE[op_code].funcP)();
-    std::cout << "| SP: "<< intToHexString(SP) << " |"<< std::endl;
+    std::cout << "| SP: 0x"<< std::setfill('0') << std::setw(2)<< std::hex << int(SP) << " |"<< std::endl;
     std::cout << "_________________________________________"<< std::endl;
     implied = false;
 }
