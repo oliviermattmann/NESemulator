@@ -1,5 +1,5 @@
 
-#include "PPU2C02.h"
+#include "Bus.h"
 
 PPU2C02::PPU2C02() {
     // Todo Init Code, Bus ect...
@@ -202,4 +202,7 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
         default:
             break;
     }
+}
+void PPU2C02::clock() {
+    bus->testPPU();
 }

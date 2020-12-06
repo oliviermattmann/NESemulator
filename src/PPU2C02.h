@@ -5,6 +5,7 @@
 
 #include <cstdint>
 
+class Bus;
 /**
  *  Emulating the NES picture processing unit.
  *  Documentation from https://wiki.nesdev.com
@@ -15,6 +16,8 @@ public:
     PPU2C02();
 
     ~PPU2C02();
+
+    Bus *bus;
 
     //MEMORY MAP
     /*
@@ -212,5 +215,9 @@ public:
     uint8_t readPPU(uint16_t address);
 
     void writePPU(uint16_t address, uint8_t data);
+
+    void bindToBus(Bus *ourBus) {bus = ourBus;}
+
+    void clock();
 
 };
