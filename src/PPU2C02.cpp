@@ -204,5 +204,5 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
     }
 }
 void PPU2C02::clock() {
-    bus->testPPU();
+//does nothing for now
 }

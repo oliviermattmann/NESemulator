@@ -355,13 +355,11 @@ void CPU6502::clock() {
 void CPU6502::EXC_OP() {
     std::cout << "| PC:"<< intToHexString(PC)  << " |"<< std::endl;
     (this->*OP_TABLE[op_code].x)();
-    std::cout << "| OPCODE:"<< intToHexString(op_code)  << " |"<< std::endl;
-    std::cout << "| Cycles needed:"<< int(this->cycle)  << " |"<< std::endl;
-    std::cout << "| Addressparameter          :"<< addressparam << " |"<< std::endl;
+    std::cout << "| OPCODE                    :"<< intToHexString(op_code)  << " |"<< std::endl;
+    std::cout << "| Cycles needed             :"<< int(this->cycle)  << " |"<< std::endl;
+    std::cout << "| Addressparameter          :"<< intToHexString(addressparam) << " |"<< std::endl;
     (this->*OP_TABLE[op_code].funcP)();
-    std::cout << "| SP: "<< int(SP) << " |"<< std::endl;
-    displayRegisters();
-    diplayFlags();
+    std::cout << "| SP: "<< intToHexString(SP) << " |"<< std::endl;
     std::cout << "_________________________________________"<< std::endl;
     implied = false;
 }
