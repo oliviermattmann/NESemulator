@@ -4,7 +4,7 @@
 int main(){
 
     Bus *bus = new Bus();
-    Cartridge *cartridge = new Cartridge("../roms/DonkeyKong.nes");
+    Cartridge *cartridge = new Cartridge("../roms/nestest.nes");
     bus->insertCartridge(*cartridge);
     bus->start();
 

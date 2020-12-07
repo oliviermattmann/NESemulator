@@ -24,8 +24,8 @@ CPU6502::CPU6502() {
     this->X = 0x0;
     this->Y = 0x0;
     this->ACC = 0x0;
-    this->PC = 0x4020;
-    //this->PC = 0xC000;        to use nestest.nes use this line as starting program counter
+    //this->PC = 0x4020;
+    this->PC = 0xC000;        //to use nestest.nes use this line as starting program counter
     this->SR = 0x00;
 
     this->SP = 0xFD;
@@ -301,17 +301,11 @@ CPU6502::CPU6502() {
 
 
 }
-
-/**
- *  Runs the CPU6052.
- */
-void CPU6502::run() {
-    while (1) {
-        //op_code = read(CPU6502::PC);
-        //CPU6502::EXC_OP();
-        clock();
-    }
+void CPU6502::reset(){
+    SP -= 3;
+    setStatusFlag(I, true);
 }
+
 
 /**
  * Sets the given Status flag to given state
@@ -320,7 +314,7 @@ void CPU6502::run() {
      if(state) {
          SR |= flag;        //if bit of flag is not already 1, it will be set to 1
      } else {
-         SR &= (0xFF-flag);        //if bit of flag is not already 0, it will be set to 0
+         SR &= unsigned(0xFF-flag);        //if bit of flag is not already 0, it will be set to 0
      }
  }
 
@@ -338,6 +332,9 @@ void CPU6502::run() {
 void CPU6502::clock() {
       if (cycle == 0) {
           op_code = read(PC);
+          if (PC == 0xCFB3 || op_code == 0x40) {
+              cout << "return from interupt, probably something wrong" << endl;
+          }
           cycle = OP_TABLE[op_code].cycles;
           EXC_OP();
           if (addCycleInc && opCycleInc) {
@@ -360,6 +357,7 @@ void CPU6502::EXC_OP() {
     std::cout << "| Addressparameter          : 0x"<< std::setfill('0') << std::setw(4)<< std::hex << int(addressparam) << " |"<< std::endl;
     (this->*OP_TABLE[op_code].funcP)();
     std::cout << "| SP: 0x"<< std::setfill('0') << std::setw(2)<< std::hex << int(SP) << " |"<< std::endl;
+    displayRegisters();
     std::cout << "_________________________________________"<< std::endl;
     implied = false;
 }
@@ -405,6 +403,7 @@ void CPU6502::abs() {
     PC++;
     uint8_t hi = read(PC);
     addressparam = (hi << 8) | lo;
+    PC++;
 }
 //works
 void CPU6502::abx() {
@@ -449,8 +448,8 @@ void CPU6502::ind() {
 void CPU6502::izx() {
     PC++;
     uint8_t lo = read((read(PC)+this->X)%256);
-    uint8_t hi = read((read(PC)+this->X + 1)%256);
-
+    uint16_t hi = uint16_t (read((read(PC)+this->X + 1)%256));
+    PC++;
     addressparam = (hi << 8) | lo;
 }
 
@@ -851,12 +850,16 @@ void CPU6502::JMP(){
 }
 
 void CPU6502::JSR(){
+    //TODO check if PC-1 onto stack of PC
     //(Jump to Subroutine) The JSR instruction pushes the address (minus one) of the return point on to the stack (PC-1)
     // and then sets the program counter to the target memory address.
     bus->busWrite(0x0100 + SP, ((PC-1) >> 8) & 0x00FF);     //push high-byte of PC-1 to Stack
     SP--;                                                               //adjust StackPointer
     bus->busWrite(0x0100 + SP, (PC-1) & 0x00FF);            //push low-byte of PC-1 to Stack
     SP--;                                                               //adjust StackPointer to point to the next free space
+    cout << "pushing pc to stack in this order:" << endl;
+    cout << (((PC) >> 8) & 0x00FF) << endl;
+    cout << ((PC)  & 0x00FF) << endl;
     PC = addressparam;                                                  //adjust ProgramCounter
     logger.debug(__FUNCTION__ ,
                  "Jump to Subroutine");
@@ -868,7 +871,7 @@ void CPU6502::RTS(){
     SP++;                                                                   //adjust StackPointer to top element
     uint16_t low = (uint16_t)bus->busRead(0x0100 + SP);                //get low-byte from stack
     SP++;                                                                   //adjust StackPointer
-    uint16_t high = (uint16_t)(bus->busRead(0x0100 + SP) << 8);        //get high-byte from stack
+    uint16_t high = (uint16_t)(bus->busRead(0x0100 + SP)) << 8;        //get high-byte from stack
     PC = high + low + 1;                                                    //set new ProgramCounter
     logger.debug(__FUNCTION__ ,
                  "Return from Subroutine");
@@ -950,7 +953,7 @@ void CPU6502::BNE(){
                  "Branch if Zero Flag clear (Branch if not equal)");
 }
 
-void CPU6502::BLP(){
+void CPU6502::BPL(){
     PC++;
     if (getStatusFlag(N) == false) {
         //branch is taken, so additional cycle needed
@@ -1054,7 +1057,8 @@ void CPU6502::BRK(){
     setStatusFlag(I, true);
     //set PC to IRQ vector
 
-    //PC = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8); does not work yet as this address is not implemented
+    PC = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
+    //does not work yet as this address is not implemented
     // yet
 }
 
@@ -1064,9 +1068,9 @@ void CPU6502::RTI(){
     SP++;
     SR = bus->busRead(0x0100 + SP);
     SP++;
-    uint16_t low = bus->busRead(0x0100 + SP);
+    uint16_t low = uint16_t (bus->busRead(0x0100 + SP));
     SP++;
-    uint16_t high = (bus->busRead(0x0100 + SP) << 0);
+    uint16_t high = uint16_t ((bus->busRead(0x0100 + SP) << 8));
     PC = high + low;
     logger.debug(__FUNCTION__ ,
                  "Return From Interrupt");
@@ -1096,7 +1100,7 @@ void CPU6502::SRE(){}
 void CPU6502::ANC(){}
 void CPU6502::SLO(){}
 void CPU6502::ALC(){}
-void CPU6502::BPL(){}
+
 void CPU6502::LAS(){}
 void CPU6502::ALR(){}
 void CPU6502::RRA(){}

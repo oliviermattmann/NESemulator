@@ -46,11 +46,12 @@ public:
     CPU6502();
 
     /**
-     * Runs the CPU6502 Module.
+     * Establishes a connection the the Bus
+     * @param ourBus pointer to the Bus, provided by the Bus at initialization
      */
-    void run();
-
     void bindToBus(Bus *ourBus) {bus = ourBus;}
+
+    void reset();
 
     /**
      * Writes a byte to a given address.
