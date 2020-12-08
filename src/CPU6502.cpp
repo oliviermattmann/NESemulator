@@ -26,8 +26,10 @@ CPU6502::CPU6502() {
     this->X = 0x0;
     this->Y = 0x0;
     this->ACC = 0x0;
-    //this->PC = 0x4020;
-    this->PC = 0xC000;        //to use nestest.nes use this line as starting program counter
+    this->PC = 0x0000;
+    //this->PC = 0xC000;        //to use nestest.nes use this line as starting program counter
+    // since the emulator is startet at the reset values, you'd have to comment out the reset method
+    // in the bus start method and set the desired starting PC here.
     this->SR = 0x24;
 
     this->SP = 0xFD;
@@ -303,10 +305,6 @@ CPU6502::CPU6502() {
 
 
 }
-void CPU6502::reset(){
-    SP -= 3;
-    setStatusFlag(I, true);
-}
 
 
 /**
@@ -354,12 +352,63 @@ void CPU6502::EXC_OP() {
     std::cout << "| PC: 0x"<< std::setfill('0') << std::setw(4)<< std::hex << PC  << " |"<< std::endl;
     uint16_t tempPC = PC;
     (this->*OP_TABLE[op_code].x)();
-    nesTestParser->getLine();
-    nesTestParser->validate(tempPC, op_code, addressparam, ACC, X, Y, SR, SP);
+    //nesTestParser->getLine();
+    //nesTestParser->validate(tempPC, op_code, addressparam, ACC, X, Y, SR, SP);
     (this->*OP_TABLE[op_code].funcP)();
     std::cout << "_________________________________________"<< std::endl;
     implied = false;
 }
+
+void CPU6502::RESET() {
+    uint16_t lo = read(0xFFFC);
+    uint16_t hi = read(0xFFFD);
+    PC = (hi << 8) | lo;
+    setStatusFlag(I, true);
+    ACC = 0x00;
+    X = 0x00;
+    Y = 0x00;
+    SR = 0x24;
+    SP = 0xFD;
+    op_code = 0x00;
+    addressparam = 0x0000;
+    address_rel = 0x00;
+    implied = false;
+    addCycleInc = false;
+    opCycleInc = false;
+    cycle = 7;
+}
+
+void CPU6502::NMI() {
+    write(0x100 + SP, SR);
+    SP--;
+    write(0x100 + SP, uint8_t (PC & 0xFF00) >> 8);
+    SP--;
+    write(0x100 + SP, uint8_t (PC & 0x00FF));
+    SP--;
+    setStatusFlag(I, true);
+    uint16_t lo = read(0xFFFA);
+    uint16_t hi = read(0xFFFB);
+    PC = (hi << 8) | lo;
+    cycle = 7;
+}
+
+void CPU6502::IRQ() {
+    if (getStatusFlag(I)) {
+        write(0x100 + SP, SR);
+        SP--;
+        write(0x100 + SP, uint8_t (PC & 0xFF00) >> 8);
+        SP--;
+        write(0x100 + SP, uint8_t (PC & 0x00FF));
+        SP--;
+        setStatusFlag(I, true);
+        uint16_t lo = read(0xFFFE);
+        uint16_t hi = read(0xFFFF);
+        PC = (hi << 8) | lo;
+        cycle = 7;
+    }
+}
+
+
 
 /*Addressing modes*/
 

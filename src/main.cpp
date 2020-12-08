@@ -2,17 +2,9 @@
 #include "CompactLogger.h"
 
 int main(){
-
+    Cartridge *cartridge = new Cartridge("../roms/donkeyKong.nes");
     Bus *bus = new Bus();
-    Cartridge *cartridge = new Cartridge("../roms/nestest.nes");
     bus->insertCartridge(*cartridge);
     bus->start();
-
-
-
-
-
-
     return 0;
-
 }
