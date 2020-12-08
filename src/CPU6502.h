@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <stack>
 #include <string>
+#include "NesTestParser.h"
 
 class Bus;
 /**
@@ -16,6 +17,7 @@ class Bus;
 class CPU6502 {
 
 public:
+    NesTestParser *nesTestParser;
     /* Main Registers */
 
     uint8_t X;       // X-Register
@@ -50,6 +52,7 @@ public:
      * @param ourBus pointer to the Bus, provided by the Bus at initialization
      */
     void bindToBus(Bus *ourBus) {bus = ourBus;}
+
 
     void reset();
 
