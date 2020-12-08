@@ -9,8 +9,6 @@ Bus::Bus(){
     for(uint8_t & text : RAM) {
         text = 0x00;
     }
-    connectCPU();
-    connectPPU();
 
 }
 Bus::~Bus() {
@@ -38,6 +36,10 @@ void Bus::insertCartridge(Cartridge cartridge) {
 }
 
 void Bus::start() {
+    cpu6502 = CPU6502();
+    connectCPU();
+    connectPPU();
+    cpu6502.RESET();                //comment this line when you want to choose the starting pc in the cpu class
     while(1) {
         busClock();
     }
