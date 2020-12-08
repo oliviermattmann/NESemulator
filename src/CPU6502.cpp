@@ -262,7 +262,7 @@ CPU6502::CPU6502() {
     OP_TABLE[0xD7] = {&CPU6502::DCP, &CPU6502::zpx, 6};
     OP_TABLE[0xD8] = {&CPU6502::CLD, &CPU6502::imp, 2};
     OP_TABLE[0xD9] = {&CPU6502::CMP, &CPU6502::aby, 4};//
-    OP_TABLE[0xDA] = {&CPU6502::NOP, &CPU6502::abx, 2};
+    OP_TABLE[0xDA] = {&CPU6502::NOP, &CPU6502::imp, 2};
     OP_TABLE[0xDB] = {&CPU6502::DCP, &CPU6502::aby, 7};
     OP_TABLE[0xDC] = {&CPU6502::NOP, &CPU6502::abx, 4};//
     OP_TABLE[0xDD] = {&CPU6502::CMP, &CPU6502::abx, 4};//
