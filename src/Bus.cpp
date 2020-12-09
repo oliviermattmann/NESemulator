@@ -18,8 +18,11 @@ Bus::~Bus() {
 uint8_t Bus::busRead(uint16_t address){
     if(address <= 0x1FFF) {
         return RAM[address & 0x07FF];
-    } else if (address >= 0x4020 & address <= 0xFFFF) {
-        return cartridge.prgData[address%cartridge.BANKSIZE];//(address - 0x4020) % cartridge.BANKSIZE];
+    } else if (address >= 0x2000 & address <= 0x3FFF) {
+
+    }
+    else if (address >= 0x8000 & address <= 0xFFFF) {
+        return cartridge.prgData[address%cartridge.BANKSIZE];
         //for nestest.nes this does not work us address%cartridge.BANKSIZE as index instead
     }
     return -1;

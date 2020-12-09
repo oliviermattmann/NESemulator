@@ -13,19 +13,22 @@ using namespace std;
 #include "Mapper.h"
 #include <fstream>
 
+/**
+ * Represents the game file in an accessible way for the emulator.
+ */
 class Cartridge {
 public:
     std::vector<uint8_t> prgData;
     std::vector<uint8_t> chrData;
 
-    Mapper mapper;
-    uint8_t nBanksPrg;
-    uint8_t nBanksChr;
-    uint8_t mapper_id;
-    uint8_t mirroring;
-    uint8_t trainer;
+    Mapper mapper; //Mapper used by the cartridge, not used in our emulator
+    uint8_t nBanksPrg; //Number of banks of PRG ROM
+    uint8_t nBanksChr; //Number of banks of CHR ROM
+    uint8_t mapper_id; //Number of the mapper
+    uint8_t mirroring; //0 = horizontal (CIRAM A10 = PPU A11) | 1 = vertical (CIRAM A10 = PPU A10)
+    uint8_t trainer;   //1 if trainer present, (in our case no trainer)
 
-    unsigned int BANKSIZE = 16384;
+    unsigned int BANKSIZE = 16384; //Size of a program data bank (Half for PPU-data)
 
     Cartridge();
 
