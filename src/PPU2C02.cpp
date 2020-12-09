@@ -143,34 +143,11 @@ uint8_t PPU2C02::get_oam_dma() const {
     return this->ppu_addr;
 }
 
-uint8_t PPU2C02::get_register(uint16_t address) {
-    switch (address) {
-        case 0x0000: return get_ppu_ctrl();
-        case 0x0001: return get_ppu_mask();
-        case 0x0002: return get_ppu_stat();
-        case 0x0003: return get_oam_addr();
-        case 0x0004: return get_oam_data();
-        case 0x0005: return get_ppu_scro();
-        case 0x0006: return get_ppu_addr();
-        case 0x0007: return get_ppu_data();
-    }
-}
 
-void PPU2C02::set_register(uint16_t address, uint8_t data) {
-    switch (address) {
-        case 0x0000:  set_ppu_ctrl(data);
-        case 0x0001:  set_ppu_mask(data);
-        case 0x0002:  set_ppu_stat(data);
-        case 0x0003:  set_oam_addr(data);
-        case 0x0004:  set_oam_data(data);
-        case 0x0005:  set_ppu_scro(data);
-        case 0x0006:  set_ppu_addr(data);
-        case 0x0007:  set_ppu_data(data);
-    }
-}
 /* Read and Write Operations */
 
 uint8_t PPU2C02::readPPU(uint16_t address) {
+
     return 0;
 }
 
