@@ -195,6 +195,11 @@ public:
 
     uint8_t get_oam_dma() const;
 
+    // get/set register based on address (for CPU)
+    uint8_t get_register(uint16_t address);
+
+    void set_register(uint16_t address, uint8_t data);
+
     /* Read and Write Operations */
 
     /**
