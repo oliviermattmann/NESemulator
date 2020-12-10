@@ -7,6 +7,13 @@ PPU2C02::PPU2C02() {
     /*
      * https://wiki.nesdev.com/w/index.php/IRQ
      */
+    // memory init
+    for (uint8_t & text : this->VRAM) {
+        text = 0x00;
+    }
+    for (uint8_t & text : this->SPR_RAM) {
+        text = 0x00;
+    }
     // disable PPU2C02 NMI and rendering
     this->set_ppu_ctrl(NMI_ENABLE, false);
     this->set_ppu_mask(SPRITE_ENABLE, false);
@@ -126,6 +133,12 @@ uint8_t PPU2C02::get_ppu_addr() const {
 
 void PPU2C02::set_ppu_data(uint8_t val) {
     this->ppu_data = val;
+    // After write increment address
+    if(this->get_ppu_ctrl() & INCR_MODE) {
+        this->ppu_addr += 1;
+    } else {
+        this->ppu_addr += 32;
+    }
 }
 
 uint8_t PPU2C02::get_ppu_data() const {
@@ -143,16 +156,25 @@ uint8_t PPU2C02::get_oam_dma() const {
     return this->ppu_addr;
 }
 
-
 /* Read and Write Operations */
 
-uint8_t PPU2C02::readPPU(uint16_t address) {
 
-    return 0;
+uint8_t PPU2C02::readPPU(uint8_t address) { //ToDo  distinguish color palettes here
+    if (this->valid_read) { //if read twice
+        this->valid_read = !this->valid_read;
+        //combine buffered addresses to u16int and wrap around from $4000-$FFFF
+        return this->VRAM[((address << 8) | (this->vram_buffer & 0xFF)) % 0x3FFF];
+    } else {
+        this->valid_read = !this->valid_read;
+        //buffer address
+        this->vram_buffer = address;
+        return 0x0; //invalid
+    }
 }
 
-void PPU2C02::writePPU(uint16_t address, uint8_t data) {
-    return;
+
+void PPU2C02::writePPU(uint8_t address, uint8_t data) {
+    this->VRAM[address % 0x3FFF] = data;
 }
 
 
@@ -174,7 +196,7 @@ uint8_t PPU2C02::readCPU(uint16_t address) const {
             return this->get_ppu_addr();
         case 0x0007:
             return this->get_ppu_data();
-        case 0x4014: // Todo What about this?
+        case 0x4014:
             return this->get_oam_dma();
         default:
             return 0x0;
@@ -185,22 +207,31 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
     switch (address) {
         case 0x0000:
             this->set_ppu_ctrl(data);
+            break;
         case 0x0001:
             this->set_ppu_mask(data);
+            break;
         case 0x0002:
             this->set_ppu_stat(data);
+            break;
         case 0x0003:
             this->set_oam_addr(data);
+            break;
         case 0x0004:
             this->set_oam_data(data);
+            break;
         case 0x0005:
             this->set_ppu_scro(data);
+            break;
         case 0x0006:
             this->set_ppu_addr(data);
+            break;
         case 0x0007:
             this->set_ppu_data(data);
-        case 0x4014:  // Todo What about this?
+            break;
+        case 0x4014:
             this->set_oam_dma(data);
+            break;
         default:
             break;
     }

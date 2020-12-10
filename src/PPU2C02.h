@@ -33,6 +33,13 @@ public:
      */
     uint8_t VRAM[16000];
 
+    //Bufferes the address input
+    uint8_t vram_buffer;
+    int valid_read = 0;
+
+    uint8_t SPR_RAM[256];
+
+
     /* Registers */
     /*
            PPUCTRL 	    $2000 	VPHB SINN 	NMI enable (V), PPU master/slave (P), sprite height (H), background tile select (B), sprite tile select (S), increment mode (I), nametable select (NN)
@@ -217,9 +224,9 @@ public:
     */
     void writeCPU(uint16_t addr, uint8_t val);
 
-    uint8_t readPPU(uint16_t address);
+    uint8_t readPPU(uint8_t address);
 
-    void writePPU(uint16_t address, uint8_t data);
+    void writePPU(uint8_t address, uint8_t data);
 
     void bindToBus(Bus *ourBus) {bus = ourBus;}
 
