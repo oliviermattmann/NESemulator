@@ -1,5 +1,7 @@
 
 #include "Bus.h"
+#include "PPU2C02.h"
+
 
 PPU2C02::PPU2C02() {
     // Todo Init Code, Bus ect...
@@ -14,13 +16,86 @@ PPU2C02::PPU2C02() {
     for (uint8_t & text : this->SPR_RAM) {
         text = 0x00;
     }
+    // Buffer
+    this->reset_buff();
     // disable PPU2C02 NMI and rendering
     this->set_ppu_ctrl(NMI_ENABLE, false);
     this->set_ppu_mask(SPRITE_ENABLE, false);
     this->set_ppu_mask(BACKGROUND_ENABLE, false);
     this->set_ppu_mask(BACKGR_LEFT_COL_ENABLE, false);
     this->set_ppu_mask(SPRITE_LEFT_COL_ENABLE, false);
-    // I think this is all the rendering? D:
+
+    //default color pallets
+    color arr[] {
+        {84, 84, 84},
+        {0, 30, 116},
+        {8, 16, 144},
+        {48, 0, 136},
+        {68, 0, 100},
+        {92, 0, 48},
+        {84, 4, 0},
+        {60, 24, 0},
+        {32, 42, 0},
+        {8, 58, 0},
+        {0, 64, 0},
+        {0, 60, 0},
+        {0, 50, 60},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {152, 150, 152},
+        {8, 76, 196},
+        {48, 50, 236},
+        {92, 30, 228},
+        {136,20, 176},
+        {160, 20, 100},
+        {152, 34, 32},
+        {120, 60, 0},
+        {84, 90, 0},
+        {40, 114, 0},
+        {8, 124, 0},
+        {0, 118, 40},
+        {0, 102, 120},
+        {0, 0, 0},
+        {0, 0, 0},
+        {0, 0, 0},
+        {236, 238, 236},
+        {76, 154, 236},
+        {120, 124, 236},
+        {176, 98, 236},
+        {228, 84, 236},
+        {236, 88, 180},
+        {236, 106, 100},
+        {212, 136, 32},
+        {160, 170, 0},
+        {116, 196, 0},
+        {76, 208, 32},
+        {56, 204, 108},
+        {56, 180, 204},
+        {60, 60, 60},
+        {0, 0, 0},
+        {0, 0, 0},
+        {236, 238, 236},
+        {168, 204, 236},
+        {188, 188, 236},
+        {212, 178, 236},
+        {236, 174, 236},
+        {236, 174, 212},
+        {236, 180, 176},
+        {228, 196, 144},
+        {204, 210, 120},
+        {180, 222, 120},
+        {168, 226, 144},
+        {152, 226, 180},
+        {160, 214, 228},
+        {160, 162, 160},
+        {0, 0, 0},
+        {0, 0, 0}
+    };
+
+    for (int i = 0; i < 64; i++) {
+        this->pallets[i] = arr[i];
+    }
 }
 
 PPU2C02::~PPU2C02() = default;
@@ -161,24 +236,44 @@ uint8_t PPU2C02::get_oam_dma() const {
 
 uint8_t PPU2C02::readPPU(uint8_t address) { //ToDo  distinguish color palettes here
     if (this->valid_read) { //if read twice
-        this->valid_read = !this->valid_read;
+        this->valid_read = 0;
         //combine buffered addresses to u16int and wrap around from $4000-$FFFF
-        return this->VRAM[((address << 8) | (this->vram_buffer & 0xFF)) % 0x3FFF];
+        return this->VRAM[((address << 8) | (this->vram_buffer_r & 0xFF)) % 0x3FFF];
     } else {
-        this->valid_read = !this->valid_read;
+        this->valid_read = 1;
         //buffer address
-        this->vram_buffer = address;
+        this->vram_buffer_r = address;
         return 0x0; //invalid
     }
 }
 
 
 void PPU2C02::writePPU(uint8_t address, uint8_t data) {
-    this->VRAM[address % 0x3FFF] = data;
+    if (this->get_ppu_stat() & VBLANK) {
+        return;
+    } else if (this->valid_write) {
+        this->valid_write = 0;
+        this->VRAM[((address << 8) | (this->vram_buffer_w & 0xFF)) % 0x3FFF] = this->vram_buffer_d;
+    } else {
+        this->valid_read = 1;
+        this->vram_buffer_d = data;
+        this->vram_buffer_w = address;
+    }
+}
+
+void PPU2C02::reset_buff() {
+    this->vram_buffer_d = 0;
+    this->vram_buffer_r = 0;
+    this->vram_buffer_w = 0;
+    this->valid_write = 0;
+    this->valid_write = 0;
 }
 
 
 uint8_t PPU2C02::readCPU(uint16_t address) const {
+    if (address == 0x4014) {
+        return this->get_oam_dma();
+    }
     switch (address & 0x0007) {
         case 0x0000:
             return this->get_ppu_ctrl();
@@ -196,14 +291,15 @@ uint8_t PPU2C02::readCPU(uint16_t address) const {
             return this->get_ppu_addr();
         case 0x0007:
             return this->get_ppu_data();
-        case 0x4014:
-            return this->get_oam_dma();
         default:
             return 0x0;
     }
 }
 
 void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
+    if (address == 0x4014) {
+       this->set_oam_dma(data);
+    }
     switch (address) {
         case 0x0000:
             this->set_ppu_ctrl(data);
@@ -212,6 +308,7 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
             this->set_ppu_mask(data);
             break;
         case 0x0002:
+            cout << "PPU reg 0x2002 is read only.";
             this->set_ppu_stat(data);
             break;
         case 0x0003:
@@ -229,13 +326,45 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
         case 0x0007:
             this->set_ppu_data(data);
             break;
-        case 0x4014:
-            this->set_oam_dma(data);
-            break;
         default:
             break;
     }
 }
+
 void PPU2C02::clock() {
 //does nothing for now
+}
+
+
+void PPU2C02::display_pixel(uint16_t p) {
+    // -> nesdoc page 19
+    if (p > 1024) {
+        return;
+    }
+    std::string buff_out;
+    if (p % 2 == 1) p--;
+    int i = p * 8;
+    int j = i + 8;
+    while (true) {
+        uint8_t p_1 = this->VRAM[i];
+        uint8_t p_2 = this->VRAM[j];
+        for (int b = 0; b < 8; b++) {
+            if (p_1 & 1 << b && p_2 & 1 << b) {
+                buff_out.append("3 ");
+            } else if (p_1 & 1 << b) {
+                buff_out.append("1 ");
+            } else if (p_2 & 1 << b) {
+                buff_out.append("2 ");
+            } else {
+                buff_out.append("0 ");
+            }
+        }
+        buff_out.append("\n");
+        i++;
+        j++;
+        if (i % 8 == 0) {
+            break;
+        }
+    }
+    cout << buff_out.c_str() << endl;
 }
