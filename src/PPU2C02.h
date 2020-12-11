@@ -31,7 +31,11 @@ public:
         $3F00-$3F1F 	$0020 	Palette RAM indexes
         $3F20-$3FFF 	$00E0 	Mirrors of $3F00-$3F1F
      */
-    uint8_t VRAM[16000];
+    uint8_t name_table[512];
+    uint8_t attr_table[512];
+    uint8_t sprite_palette[16];
+    uint8_t image_palette[16];
+
 
     uint8_t vram_buffer_r;
     uint8_t vram_buffer_d;
@@ -245,9 +249,9 @@ public:
     */
     void writeCPU(uint16_t addr, uint8_t val);
 
-    uint8_t readPPU(uint8_t address);
+    uint8_t readPPU(uint16_t address);
 
-    void writePPU(uint8_t address, uint8_t data);
+    void writePPU(uint16_t address, uint8_t data);
 
     void bindToBus(Bus *ourBus) {bus = ourBus;}
 

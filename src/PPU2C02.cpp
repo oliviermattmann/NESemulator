@@ -234,7 +234,8 @@ uint8_t PPU2C02::get_oam_dma() const {
 /* Read and Write Operations */
 
 /*
-uint8_t PPU2C02::readPPU(uint8_t address) { //ToDo  distinguish color palettes here
+uint8_t PPU2C02::readPPU(uint8_t address) {
+ To  distinguish color palettes here
     if (this->valid_read) { //if read twice
         this->valid_read = 0;
         //combine buffered addresses to u16int and wrap around from $4000-$FFFF
@@ -247,15 +248,30 @@ uint8_t PPU2C02::readPPU(uint8_t address) { //ToDo  distinguish color palettes h
     }*/
 
 uint8_t PPU2C02::readPPU(uint16_t address) {
+    address = address & 0x4000;
     if (address <= 0x1FFF) {
         return bus->cartridge.chrData[address];
+    } else if (address <= 0x3EFF) {
+        address = (address & 0x0400);
+        if (address < 0x0200) {
+            return name_table[address];
+        } else {
+            return attr_table[address & 0x0200];
+        }
+    } else if (address < 0x3F20) {
+        address = address & 0x0020;
+        if (address < 0x0010) {
+            return image_palette[address];
+        } else {
+            return sprite_palette[address & 0x0010];
+        }
     }
     return 0;
 }
 
 
-void PPU2C02::writePPU(uint8_t address, uint8_t data) {
-    if (this->get_ppu_stat() & VBLANK) {
+void PPU2C02::writePPU(uint16_t address, uint8_t data) {
+   /* if (this->get_ppu_stat() & VBLANK) {
         return;
     } else if (this->valid_write) {
         this->valid_write = 0;
@@ -264,7 +280,26 @@ void PPU2C02::writePPU(uint8_t address, uint8_t data) {
         this->valid_read = 1;
         this->vram_buffer_d = data;
         this->vram_buffer_w = address;
+    }*/
+    address = address & 0x4000;
+    if (address <= 0x1FFF) {
+        bus->cartridge.chrData[address] = data;
+    } else if (address <= 0x3EFF) {
+        address = (address & 0x0400);
+        if (address < 0x0200) {
+            name_table[address] = data;
+        } else {
+            attr_table[address & 0x0200] = data;
+        }
+    } else if (address < 0x3F20) {
+        address = address & 0x0020;
+        if (address < 0x0010) {
+            image_palette[address] = data;
+        } else {
+            sprite_palette[address & 0x0010] = data;
+        }
     }
+
 }
 
 void PPU2C02::reset_buff() {
