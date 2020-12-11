@@ -147,7 +147,9 @@ uint8_t PPU2C02::get_oam_dma() const {
 /* Read and Write Operations */
 
 uint8_t PPU2C02::readPPU(uint16_t address) {
-
+    if (address <= 0x1FFF) {
+        return bus->cartridge.chrData[address];
+    }
     return 0;
 }
 
