@@ -33,6 +33,34 @@ public:
      */
     uint8_t VRAM[16000];
 
+    uint8_t vram_buffer_r;
+    uint8_t vram_buffer_d;
+    uint8_t vram_buffer_w;
+
+    int valid_read;
+    int valid_write;
+
+    /**
+     * Resets Buffer values.
+     */
+    void reset_buff();
+
+    uint8_t SPR_RAM[256];
+
+    /**
+     * Contains a color in rgb code.
+     */
+    struct color {
+        uint8_t r;
+        uint8_t b;
+        uint8_t g;
+    };
+
+    /**
+     * 56 colors. https://wiki.nesdev.com/w/images/5/59/Savtool-swatches.png
+     */
+    color pallets[64];
+
     /* Registers */
     /*
            PPUCTRL 	    $2000 	VPHB SINN 	NMI enable (V), PPU master/slave (P), sprite height (H), background tile select (B), sprite tile select (S), increment mode (I), nametable select (NN)
@@ -217,12 +245,22 @@ public:
     */
     void writeCPU(uint16_t addr, uint8_t val);
 
-    uint8_t readPPU(uint16_t address);
+    uint8_t readPPU(uint8_t address);
 
-    void writePPU(uint16_t address, uint8_t data);
+    void writePPU(uint8_t address, uint8_t data);
 
     void bindToBus(Bus *ourBus) {bus = ourBus;}
 
     void clock();
+
+    /**
+     * The pattern table is an area of memory connected to the
+     * PPU that defines the shapes of tiles that make up backgrounds
+     * and sprites. Each tile in the pattern table is 16 bytes,
+     * made of two planes. The first plane controls bit 0 of the color;
+     * the second plane controls bit 1. Any pixel whose color is 0 is background/transparent
+     * (represented by '.' in the following diagram)
+     */
+    void display_pixel(uint16_t p);
 
 };
