@@ -7,4 +7,5 @@ int main(){
     bus->insertCartridge(*cartridge);
     bus->start();
     return 0;
+
 }
