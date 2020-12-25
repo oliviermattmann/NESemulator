@@ -9,6 +9,8 @@
 #include "Cartridge.h"
 #include "CPU6502.h"
 #include "PPU2C02.h"
+#include "Renderer.h"
+#include "SFML/System.hpp"
 
 
 class Cartridge;
@@ -23,6 +25,8 @@ public:
     Cartridge cartridge;
     CPU6502 cpu6502;
     PPU2C02 ppu2C02;
+    Renderer* renderer;
+    sf::Thread* thread;
 
 
 

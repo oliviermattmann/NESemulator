@@ -7,6 +7,7 @@
 #include "SFML/Graphics.hpp"
 #include "SFML/System.hpp"
 #include "SFML/Window.hpp"
+#include "SFML/Network.hpp"
 
 
 
@@ -14,20 +15,21 @@ class Renderer {
 private:
     //Variables
     sf::RenderWindow* window;
-    sf::Event evnt;
+    sf::Event event;
     //private functions
     void initVariables();
-    void initWindow();
 
 
 
 public:
     //Constructors and Destructors
-    Renderer(sf::Thread thread);
+    Renderer();
     ~Renderer();
     //public functions
+    void initWindow();
 
     void render();
+    void run();
 };
 
 

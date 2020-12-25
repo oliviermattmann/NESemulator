@@ -15,4 +15,4 @@ find_package (OpenGL)
 
 add_executable(NESemulator ${SOURCE_FILES})
 
-target_link_libraries (NESemulator ${OPENGL_LIBRARIES} sfml-window sfml-system)
+target_link_libraries (NESemulator ${OPENGL_LIBRARIES} sfml-window sfml-system sfml-graphics)

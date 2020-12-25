@@ -3,6 +3,8 @@
 //
 #include "Bus.h"
 
+
+
 Bus::Bus(){
     cartridge = Cartridge();
     masterClock = 0;
@@ -52,6 +54,9 @@ void Bus::connectCPU() {
 }
 void Bus::connectPPU() {
     ppu2C02.bindToBus(this);
+    renderer = new Renderer();
+    thread = new sf::Thread(&Renderer::initWindow, renderer);
+    thread->launch();
 }
 void Bus::busClock() {
     if(masterClock % 3 == 0) {
