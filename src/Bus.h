@@ -7,9 +7,6 @@
 #define NESEMULATOR_BUS_H
 #include <cstdint>
 #include "Cartridge.h"
-#include "CPU6502.h"
-#include "PPU2C02.h"
-#include "Renderer.h"
 #include "SFML/System.hpp"
 
 
@@ -23,10 +20,6 @@ public:
     uint8_t RAM[2048];
     uint8_t masterClock;
     Cartridge cartridge;
-    CPU6502 cpu6502;
-    PPU2C02 ppu2C02;
-    Renderer* renderer;
-    sf::Thread* thread;
 
 
 
@@ -42,11 +35,9 @@ public:
 
     void busClock();
 
-    void start();
+    //void start();
 
-    void connectCPU();
 
-    void connectPPU();
 };
 
 

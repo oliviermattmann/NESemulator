@@ -1,7 +1,12 @@
 
-#include "Bus.h"
+#include <random>
+#include <functional>
+#include "PPU2C02.h"
 
-PPU2C02::PPU2C02() {
+PPU2C02::PPU2C02(Bus& mainBus, Screen& screen) :
+        ppuScreen(screen),
+        bus(mainBus)
+{
     // Todo Init Code, Bus ect...
     // Set IRQ Ignore bit
     /*
@@ -14,9 +19,18 @@ PPU2C02::PPU2C02() {
     this->set_ppu_mask(BACKGR_LEFT_COL_ENABLE, false);
     this->set_ppu_mask(SPRITE_LEFT_COL_ENABLE, false);
     // I think this is all the rendering? D:
+
+
+
+
+
 }
 
 PPU2C02::~PPU2C02() = default;
+
+void PPU2C02::setNMI(std::function<void()> nmi) {
+    nmiVblank = nmi;
+}
 
 void PPU2C02::set_ppu_ctrl(CTRL_MASK b, bool status) {
     if (status) {
@@ -204,5 +218,11 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
     }
 }
 void PPU2C02::clock() {
+    //bus->renderer->updatePixel();
+    scanLine = (scanLine+1)%260;
+    if (scanLine == 200) {
+        frameDone = true;
+        nmiVblank();
+    }
 //does nothing for now
 }

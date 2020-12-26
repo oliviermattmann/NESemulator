@@ -5,7 +5,7 @@
 
 
 
-Bus::Bus(){
+Bus::Bus() {
     cartridge = Cartridge();
     masterClock = 0;
     for(uint8_t & text : RAM) {
@@ -39,7 +39,7 @@ void Bus::busWrite(uint16_t address, uint8_t data){
 void Bus::insertCartridge(Cartridge cartridge) {
     this->cartridge = std::move(cartridge);
 }
-
+/*
 void Bus::start() {
     cpu6502 = CPU6502();
     connectCPU();
@@ -48,21 +48,13 @@ void Bus::start() {
     while(1) {
         busClock();
     }
-}
-void Bus::connectCPU() {
-    cpu6502.bindToBus(this);
-}
-void Bus::connectPPU() {
-    ppu2C02.bindToBus(this);
-    renderer = new Renderer();
-    thread = new sf::Thread(&Renderer::initWindow, renderer);
-    thread->launch();
-}
+}*/
+
 void Bus::busClock() {
     if(masterClock % 3 == 0) {
-        cpu6502.clock();
+        //cpu6502.clock();
     }
-    ppu2C02.clock();
+    //ppu2C02.clock();
     masterClock++;
 }
 

@@ -1,11 +1,13 @@
 
 #ifndef NESEMULATOR_PPU2C02_H
 #define NESEMULATOR_PPU2C02_H
-#endif //NESEMULATOR_PPU2C02_H
-
+#include "SFML/Graphics.hpp"
+#include "Screen.h"
 #include <cstdint>
+#include "Bus.h"
+#include <functional>
 
-class Bus;
+
 /**
  *  Emulating the NES picture processing unit.
  *  Documentation from https://wiki.nesdev.com
@@ -13,11 +15,19 @@ class Bus;
 class PPU2C02 {
 
 public:
-    PPU2C02();
+    PPU2C02(Bus& mainBus, Screen& screen);
 
     ~PPU2C02();
+    void setNMI(std::function<void(void)> nmi);
+    Bus &bus;
+    uint16_t scanLine = 0;
+    uint16_t cycle = 0;
+    std::function<void(void)> nmiVblank;
 
-    Bus *bus;
+
+    //Variables for the Screen
+    bool frameDone = false;
+    Screen &ppuScreen;
 
     //MEMORY MAP
     /*
@@ -215,9 +225,12 @@ public:
     uint8_t readPPU(uint16_t address);
 
     void writePPU(uint16_t address, uint8_t data);
-
-    void bindToBus(Bus *ourBus) {bus = ourBus;}
-
+/*
+    void bindToBus(Bus *ourBus, Screen *screen1) {
+        bus = ourBus;
+    }
+*/
     void clock();
 
 };
+#endif //NESEMULATOR_PPU2C02_H

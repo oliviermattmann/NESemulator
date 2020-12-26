@@ -8,9 +8,9 @@
 #include <cstdint>
 #include <stack>
 #include <string>
-#include "NesTestParser.h"
+#include "../util/NesTestParser.h"
+#include "Bus.h"
 
-class Bus;
 /**
  * Central processing unit emulating class.
  */
@@ -32,7 +32,7 @@ public:
 
     /* Bus Handling */
 
-    Bus *bus = nullptr; // Pointer to the bus.
+    Bus &bus;
 
     /* cycle Handling */
     uint8_t OPcycles;
@@ -45,16 +45,15 @@ public:
      * Constructor for the CPU6502 emulating class.
      * @param bus
      */
-    CPU6502();
+    CPU6502(Bus &mainBus);
 
     /**
      * Establishes a connection the the Bus
      * @param ourBus pointer to the Bus, provided by the Bus at initialization
      */
-    void bindToBus(Bus *ourBus) {bus = ourBus;}
+    //void bindToBus(Bus *ourBus) {bus = ourBus;}
 
 
-    void reset();
 
     /**
      * Writes a byte to a given address.
