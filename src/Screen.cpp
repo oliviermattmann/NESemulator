@@ -87,30 +87,8 @@ void Screen::init(uint16_t width, uint16_t height, float pixelSize, sf::Color in
 }
 
 void Screen::setPixel(size_t x, size_t y, sf::Color color) {
-    /*auto ind = (x + screenSize.y * y) * 6;
-    sf::Vector2f coordinates (x * pSize, y * pSize);
-               //Triangle-1
-               //top-left
-               vertices[ind].color    = color;
-
-               //top-right
-               vertices[ind + 1].color = color;
-
-               //bottom-right
-               vertices[ind + 2].color = color;
-
-               //Triangle-2
-               //bottom-right
-               vertices[ind + 3].color = color;
-
-               //bottom-left
-               vertices[ind + 4].color = color;
-
-               //top-left
-               vertices[ind + 5].color    = color;*/
     auto ind = (x + y * screenSize.x) * 4;
     //check for overflow
-    size_t count = vertices.getVertexCount();
     if(ind < vertices.getVertexCount()) {
         //for corner 0
         vertices[ind].color = color;

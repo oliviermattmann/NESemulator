@@ -391,6 +391,8 @@ void CPU6502::NMI() {
     uint16_t hi = read(0xFFFB);
     PC = (hi << 8) | lo;
     cycle = 7;
+    logger.debug(__FUNCTION__ ,
+                 "NMI call from PPU");
 }
 
 void CPU6502::IRQ() {
@@ -552,11 +554,13 @@ void CPU6502::LDA(){
     opCycleInc = true;
 
     uint8_t value = this->read(addressparam);
+    std::cout << addressparam << std::endl;
     this->setZero(value);
     this->setNegative(value);
     this->ACC = value;
     logger.debug(__FUNCTION__ ,
                  "loaded accumulator.");
+    displayRegisters();
 }
 
 void CPU6502::LDX(){

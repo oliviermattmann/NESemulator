@@ -20,6 +20,8 @@ public:
     uint8_t RAM[2048];
     uint8_t masterClock;
     Cartridge cartridge;
+    uint8_t controller;
+    uint8_t controller_status;
 
 
 

@@ -11,7 +11,8 @@ Bus::Bus() {
     for(uint8_t & text : RAM) {
         text = 0x00;
     }
-
+    controller = 0x00;
+    controller_status = 0x00;
 }
 Bus::~Bus() {
     //does nothing
@@ -27,11 +28,22 @@ uint8_t Bus::busRead(uint16_t address){
         return cartridge.prgData[address%cartridge.BANKSIZE];
         //for nestest.nes this does not work us address%cartridge.BANKSIZE as index instead
     }
+    else if (address >= 0x4016 && address <= 0x4017)
+    {
+        // Read out the MSB of the controller status word
+        uint8_t temp = (controller_status & 0x80) > 0;
+        controller_status <<= 1;
+        return temp;
+    }
     return -1;
 }
 void Bus::busWrite(uint16_t address, uint8_t data){
     if (address <= 0x1FFF) {
         RAM[address & 0x07FF] = data;
+    } else if (address >= 0x4016 && address <= 0x4017)
+    {
+        // "Lock In" controller state at this time
+        controller_status = controller;
     }
 
 }
