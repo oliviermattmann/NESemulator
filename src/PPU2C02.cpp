@@ -219,10 +219,10 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
 }
 void PPU2C02::clock() {
     //bus->renderer->updatePixel();
-    scanLine = (scanLine+1)%260;
-    if (scanLine == 200) {
+    scanLine = (scanLine+1);
+    if (scanLine == 20000) {
         frameDone = true;
-        nmiVblank();
+        //nmiVblank();
     }
 //does nothing for now
 }

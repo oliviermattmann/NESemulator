@@ -45,7 +45,7 @@ void NesTestParser::validate(uint16_t pc, uint8_t op, uint16_t address, uint8_t 
         std::cout << "filler" << std::endl;
     }
     if (lineArray[1] != op) {
-        std::cout << "wrong op_code, was: " << std::setfill('0') << std::setw(2)<< std::hex << op << " should have been: " << std::setfill('0') << std::setw(2)<< std::hex << lineArray[1] << std::endl;
+        std::cout << "wrong op_code, was: " << std::setfill('0') << std::setw(2)<< std::hex << int(op) << " should have been: " << std::setfill('0') << std::setw(2)<< std::hex << lineArray[1] << std::endl;
 
         std::cout << "filler" << std::endl;
     }

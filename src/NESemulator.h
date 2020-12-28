@@ -25,13 +25,21 @@ public:
     uint16_t masterClock;
 
     sf::RenderWindow window;
+    sf::Text cpuStatus[8];
+    sf::Font myFont;
     Screen screen;
+
+    bool instructionStep = false;
+    bool frameStep = false;
 
     //Constructor/Destructor
     NESemulator();
     ~NESemulator();
     //functions
     void run();
+    void initStatus();
+    void updateStatus();
+    void clock();
 
 
 };

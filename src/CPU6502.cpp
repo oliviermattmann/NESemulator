@@ -23,12 +23,16 @@ CPU6502::CPU6502(Bus &mainbus) :
     /* Bus */
     nesTestParser = new NesTestParser();
 
+    /* Display for status*/
+
+
+
     /* Set Registers to 0 */
     this->X = 0x0;
     this->Y = 0x0;
     this->ACC = 0x0;
-    this->PC = 0x0000;
-    //this->PC = 0xC000;        //to use nestest.nes use this line as starting program counter
+    //this->PC = 0x0000;
+    this->PC = 0xC000;        //to use nestest.nes use this line as starting program counter
     // since the emulator is startet at the reset values, you'd have to comment out the reset method
     // in the bus start method and set the desired starting PC here.
     this->SR = 0x24;
@@ -336,25 +340,32 @@ void CPU6502::clock() {
           setStatusFlag(B2, true);
           op_code = read(PC);
           cycle = OP_TABLE[op_code].cycles;
+          std::cout << "| PC: 0x"<< std::setfill('0') << std::setw(4)<< std::hex << PC  << " |"<< std::endl;
+          std::cout << "op Code : " << std::hex << int(op_code) << std::endl;
           EXC_OP();
           if (addCycleInc && opCycleInc) {
               cycle++;
           }
           addCycleInc = false;
           opCycleInc = false;
+          instructionComplete = false;
       }
       cycle--;
+    if (cycle == 0) {
+        instructionComplete = true;
+    }
   }
 
 /**
  * Executes a single operation code.
  */
 void CPU6502::EXC_OP() {
-    std::cout << "| PC: 0x"<< std::setfill('0') << std::setw(4)<< std::hex << PC  << " |"<< std::endl;
+
     uint16_t tempPC = PC;
     (this->*OP_TABLE[op_code].x)();
-    //nesTestParser->getLine();
-    //nesTestParser->validate(tempPC, op_code, addressparam, ACC, X, Y, SR, SP);
+    std::cout << "address: " << std::setfill('0') << std::setw(4)<< std::hex << int(addressparam)  << " |"<< std::endl;
+    nesTestParser->getLine();
+    nesTestParser->validate(tempPC, op_code, addressparam, ACC, X, Y, SR, SP);
     (this->*OP_TABLE[op_code].funcP)();
     std::cout << "_________________________________________"<< std::endl;
     implied = false;

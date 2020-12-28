@@ -8,11 +8,13 @@ NESemulator::NESemulator() :
     cpu(bus),
     ppu(bus, screen)
 {
-    cartridge = new Cartridge("../roms/donkeyKong.nes");
+    cartridge = new Cartridge("../roms/nestest.nes");
     bus.insertCartridge(*cartridge);
     masterClock = 0;
-    cpu.RESET();
+    //cpu.RESET();
     ppu.setNMI([&](){cpu.NMI();});
+
+    initStatus();
 }
 NESemulator::~NESemulator() {
 
@@ -56,14 +58,14 @@ void NESemulator::run() {
                         bus.controller |= 0x01;
                     } else if (event.key.code == sf::Keyboard::Left) {
                         bus.controller |= 0x02;
+                    } else if (event.key.code == sf::Keyboard::I) {
+                        instructionStep = !instructionStep;
+                    } else if (event.key.code == sf::Keyboard::O) {
+                        frameStep = !frameStep;
                     }
-
-                    std::cout << std::bitset<8>(bus.controller) << std::endl;
                     break;
                 case sf::Event::KeyReleased:
-                    if (event.key.code == sf::Keyboard::P) {
-                        running = !running;
-                    } else if (event.key.code == sf::Keyboard::Y) {
+                    if (event.key.code == sf::Keyboard::Y) {
                         bus.controller ^= 0x80;
                     } else if (event.key.code == sf::Keyboard::X) {
                         bus.controller ^= 0x40;
@@ -80,28 +82,82 @@ void NESemulator::run() {
                     } else if (event.key.code == sf::Keyboard::Left) {
                         bus.controller ^= 0x02;
                     }
-
-                    std::cout << std::bitset<8>(bus.controller) << std::endl;
                     break;
 
                 default:
                     break;
             }
         }
-        while(running) {
-            if (masterClock%3 == 0) {
-                cpu.clock();
+        //window.clear();
+        if (running) {
+            while (!ppu.frameDone) {
+                clock();
             }
-            ppu.clock();
-            masterClock++;
-            if (ppu.frameDone) {
+            ppu.frameDone = false;
+        } else {
+            if (instructionStep) {
+                //while (!cpu.instructionComplete) {
+                  //  clock();
+                //}
+                do {clock();} while (!cpu.instructionComplete);
+                instructionStep = false;
+                updateStatus();
+            } else if (frameStep) {
+
+                do {clock();} while (!ppu.frameDone);
+                frameStep = false;
                 ppu.frameDone = false;
-                break;
             }
         }
-
         window.clear();
+        for (int i = 0; i < 8; i++) {
+            window.draw(cpuStatus[i]);
+        }
         window.draw(screen);
         window.display();
     }
+}
+void NESemulator::initStatus() {
+    if(!myFont.loadFromFile("../external/Fonts/ARIAL.TTF")) {
+        std::cout << "fuck" << std::endl;
+    }
+    for (int i = 0; i < 8; i++) {
+        cpuStatus[i].setFont(myFont);
+        if (i == 2) {
+            cpuStatus[i].setPosition(775+i*30+7, 0);
+        } else {
+            cpuStatus[i].setPosition(775+i*30, 0);
+        }
+
+        cpuStatus[i].setCharacterSize(30);
+        cpuStatus[i].setStyle(sf::Text::Bold);
+        cpuStatus[i].setFillColor(sf::Color::Green);
+    }
+    cpuStatus[0].setString("C");
+    cpuStatus[1].setString("Z");
+    cpuStatus[2].setString("I");
+    cpuStatus[3].setString("D");
+    cpuStatus[4].setString("B");
+    cpuStatus[5].setString("U");
+    cpuStatus[6].setString("V");
+    cpuStatus[7].setString("N");
+}
+void NESemulator::updateStatus() {
+    for (int i = 0; i < 8; i++) {
+        if (cpu.SR & 1<<i) {
+            cpuStatus[i].setFillColor(sf::Color::Green);
+        } else {
+            cpuStatus[i].setFillColor(sf::Color::Red);
+        }
+    }
+}
+
+void NESemulator::clock() {
+    ppu.clock();
+    if (masterClock%3 == 0) {
+        cpu.clock();
+    }
+    ppu.clock();
+
+    masterClock++;
 }

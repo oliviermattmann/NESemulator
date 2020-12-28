@@ -10,6 +10,7 @@
 #include <string>
 #include "../util/NesTestParser.h"
 #include "Bus.h"
+#include "SFML/Graphics.hpp"
 
 /**
  * Central processing unit emulating class.
@@ -33,6 +34,7 @@ public:
     /* Bus Handling */
 
     Bus &bus;
+    //sf::Text &statusElements;
 
     /* cycle Handling */
     uint8_t OPcycles;
@@ -40,6 +42,7 @@ public:
     bool opCycleInc;            //some opcodes can cause an increase in cycles
                                 //cycles are only increased with both bools are set to true
     uint8_t cycle;
+    bool instructionComplete = false;
 
     /**
      * Constructor for the CPU6502 emulating class.
