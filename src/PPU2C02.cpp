@@ -13,7 +13,7 @@ PPU2C02::PPU2C02(Bus& mainBus, Screen& screen) :
      * https://wiki.nesdev.com/w/index.php/IRQ
      */
     // memory init
-    for (uint8_t & text : this->VRAM) {
+    for (uint8_t & text : this->nameTable) {
         text = 0x00;
     }
     for (uint8_t & text : this->SPR_RAM) {
@@ -255,58 +255,57 @@ uint8_t PPU2C02::readPPU(uint8_t address) {
     }*/
 
 uint8_t PPU2C02::readPPU(uint16_t address) {
-    address = address & 0x4000;
-    if (address <= 0x1FFF) {
-        return bus->cartridge.chrData[address];
+    address = address & 0x3FFF;
+    uint8_t temp = 0x00;
+    if (address < 0x2000) {
+        temp =  bus.cartridge.chrData[address];
     } else if (address <= 0x3EFF) {
-        address = (address & 0x0400);
-        if (address < 0x0200) {
-            return name_table[address];
-        } else {
-            return attr_table[address & 0x0200];
+        address = (address & 0x0FFF);
+        temp = nameTable[address & 0x03FF];
+    } else if (address >= 0x3F00 && address <= 0x3FFF) {
+        address &= 0x001F;
+        if (address == 0x0010) {
+            address = 0x0000;
         }
-    } else if (address < 0x3F20) {
-        address = address & 0x0020;
-        if (address < 0x0010) {
-            return image_palette[address];
-        } else {
-            return sprite_palette[address & 0x0010];
+        if (address == 0x0014) {
+            address = 0x0004;
         }
+        if (address == 0x0018) {
+            address = 0x0008;
+        }
+        if (address == 0x001C) {
+            address = 0x000C;
+        }
+        temp = paletteTable[address];
     }
-    return 0;
+
+    return temp;
 }
 
 
 void PPU2C02::writePPU(uint16_t address, uint8_t data) {
-   /* if (this->get_ppu_stat() & VBLANK) {
+    address = address & 0x3FFF;
+    if (address < 0x2000) {
         return;
-    } else if (this->valid_write) {
-        this->valid_write = 0;
-        this->VRAM[((address << 8) | (this->vram_buffer_w & 0xFF)) % 0x3FFF] = this->vram_buffer_d;
-    } else {
-        this->valid_read = 1;
-        this->vram_buffer_d = data;
-        this->vram_buffer_w = address;
-    }*/
-    address = address & 0x4000;
-    if (address <= 0x1FFF) {
-        bus->cartridge.chrData[address] = data;
     } else if (address <= 0x3EFF) {
-        address = (address & 0x0400);
-        if (address < 0x0200) {
-            name_table[address] = data;
-        } else {
-            attr_table[address & 0x0200] = data;
+        address = (address & 0x0FFF);
+        nameTable[address & 0x03FF] = data;
+    } else if (address >= 0x3F00 && address <= 0x3FFF) {
+        address &= 0x001F;
+        if (address == 0x0010) {
+            address = 0x0000;
         }
-    } else if (address < 0x3F20) {
-        address = address & 0x0020;
-        if (address < 0x0010) {
-            image_palette[address] = data;
-        } else {
-            sprite_palette[address & 0x0010] = data;
+        if (address == 0x0014) {
+            address = 0x0004;
         }
+        if (address == 0x0018) {
+            address = 0x0008;
+        }
+        if (address == 0x001C) {
+            address = 0x000C;
+        }
+        paletteTable[address] = data;
     }
-
 }
 
 void PPU2C02::reset_buff() {
@@ -393,7 +392,7 @@ void PPU2C02::clock() {
 }
 
 
-void PPU2C02::display_pixel(uint16_t p) {
+/*void PPU2C02::display_pixel(uint16_t p) {
     // -> nesdoc page 19
     if (p > 1024) {
         return;
@@ -425,3 +424,4 @@ void PPU2C02::display_pixel(uint16_t p) {
     }
     cout << buff_out.c_str() << endl;
 }
+ */

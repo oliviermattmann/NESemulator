@@ -26,7 +26,7 @@ public:
     std::function<void(void)> nmiVblank;
 
     uint8_t nameTable[1024];
-
+    uint8_t paletteTable[32];
 
 
     //Variables for the Screen
@@ -45,10 +45,7 @@ public:
         $3F00-$3F1F 	$0020 	Palette RAM indexes
         $3F20-$3FFF 	$00E0 	Mirrors of $3F00-$3F1F
      */
-    uint8_t name_table[512];
-    uint8_t attr_table[512];
-    uint8_t sprite_palette[16];
-    uint8_t image_palette[16];
+
 
 
     uint8_t vram_buffer_r;
