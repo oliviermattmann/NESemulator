@@ -3,6 +3,9 @@
 
 
 int main(){
+    printf("%d\n", (10 % 3));
+    printf("%d\n", (10 & 3));
+
     Cartridge *cartridge = new Cartridge("../roms/donkeyKong.nes");
     //initialize Components
     Screen screen = Screen(768, 720, 3, sf::Color::Green);

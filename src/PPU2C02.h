@@ -45,6 +45,39 @@ public:
         $3F00-$3F1F 	$0020 	Palette RAM indexes
         $3F20-$3FFF 	$00E0 	Mirrors of $3F00-$3F1F
      */
+    uint8_t name_table[512];
+    uint8_t attr_table[512];
+    uint8_t sprite_palette[16];
+    uint8_t image_palette[16];
+
+
+    uint8_t vram_buffer_r;
+    uint8_t vram_buffer_d;
+    uint8_t vram_buffer_w;
+
+    int valid_read;
+    int valid_write;
+
+    /**
+     * Resets Buffer values.
+     */
+    void reset_buff();
+
+    uint8_t SPR_RAM[256];
+
+    /**
+     * Contains a color in rgb code.
+     */
+    struct color {
+        uint8_t r;
+        uint8_t b;
+        uint8_t g;
+    };
+
+    /**
+     * 56 colors. https://wiki.nesdev.com/w/images/5/59/Savtool-swatches.png
+     */
+    color pallets[64];
 
     /* Registers */
     /*
@@ -208,6 +241,11 @@ public:
 
     uint8_t get_oam_dma() const;
 
+    // get/set register based on address (for CPU)
+    uint8_t get_register(uint16_t address);
+
+    void set_register(uint16_t address, uint8_t data);
+
     /* Read and Write Operations */
 
     /**
@@ -234,6 +272,16 @@ public:
     }
 */
     void clock();
+
+    /**
+     * The pattern table is an area of memory connected to the
+     * PPU that defines the shapes of tiles that make up backgrounds
+     * and sprites. Each tile in the pattern table is 16 bytes,
+     * made of two planes. The first plane controls bit 0 of the color;
+     * the second plane controls bit 1. Any pixel whose color is 0 is background/transparent
+     * (represented by '.' in the following diagram)
+     */
+    void display_pixel(uint16_t p);
 
 };
 #endif //NESEMULATOR_PPU2C02_H
