@@ -14,6 +14,7 @@
  *  */
 class PPU2C02 {
 
+
 public:
     PPU2C02(Bus& mainBus, Screen& screen);
 
@@ -23,6 +24,9 @@ public:
     uint16_t scanLine = 0;
     uint16_t cycle = 0;
     std::function<void(void)> nmiVblank;
+
+    uint8_t nameTable[1024];
+
 
 
     //Variables for the Screen
@@ -41,7 +45,6 @@ public:
         $3F00-$3F1F 	$0020 	Palette RAM indexes
         $3F20-$3FFF 	$00E0 	Mirrors of $3F00-$3F1F
      */
-    uint8_t VRAM[16000];
 
     /* Registers */
     /*

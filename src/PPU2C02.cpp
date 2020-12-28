@@ -160,10 +160,19 @@ uint8_t PPU2C02::get_oam_dma() const {
 /* Read and Write Operations */
 
 uint8_t PPU2C02::readPPU(uint16_t address) {
+    address = address & 0x3FFF;
+    uint8_t temp = 0x00;
+    if(address < 0x2000) {
+        temp = bus.cartridge.chrData[address];
+    }
+    else {
+
+    }
     return 0;
 }
 
 void PPU2C02::writePPU(uint16_t address, uint8_t data) {
+    address = address & 0x3FFF;
     return;
 }
 

@@ -3,7 +3,7 @@
 
 
 int main(){
-    /*Cartridge *cartridge = new Cartridge("../roms/donkeyKong.nes");
+    Cartridge *cartridge = new Cartridge("../roms/donkeyKong.nes");
     //initialize Components
     Screen screen = Screen(768, 720, 3, sf::Color::Green);
     Bus bus = Bus(screen);
@@ -12,7 +12,7 @@ int main(){
     bus.connectCPU();
     bus.ppu2C02 = PPU2C02(bus, screen);
     bus.connectPPU(screen);
-    bus.cpu6502.RESET();*/
+    bus.cpu6502.RESET();
 
     //initialize Screen related stuff
     NESemulator neSemulator;
