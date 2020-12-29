@@ -4,15 +4,18 @@
 
 #include "NESemulator.h"
 
-NESemulator::NESemulator() :
-    cpu(bus),
-    ppu(bus, screen)
+NESemulator::NESemulator() //:
+    //cpu(bus),
+    //ppu(bus, screen)
 {
+    bus = new Bus();
     cartridge = new Cartridge("../roms/nestest.nes");
-    bus.insertCartridge(*cartridge);
+    bus->insertCartridge(*cartridge);
+    cpu = new CPU6502(bus);
+    ppu = new PPU2C02(bus, screen);
     masterClock = 0;
-    //cpu.RESET();
-    ppu.setNMI([&](){cpu.NMI();});
+    cpu->RESET();
+    ppu->setNMI([&](){cpu->NMI();});
 
     initStatus();
 }
@@ -43,44 +46,48 @@ void NESemulator::run() {
                     } else if (event.key.code == sf::Keyboard::P) {
                         running = !running;
                     } else if (event.key.code == sf::Keyboard::Y) {
-                        bus.controller |= 0x80;
+                        bus->controller |= 0x80;
                     } else if (event.key.code == sf::Keyboard::X) {
-                        bus.controller |= 0x40;
+                        bus->controller |= 0x40;
                     } else if (event.key.code == sf::Keyboard::A) {
-                        bus.controller |= 0x10;
+                        bus->controller |= 0x10;
                     } else if (event.key.code == sf::Keyboard::S) {
-                        bus.controller |= 0x20;
+                        bus->controller |= 0x20;
                     } else if (event.key.code == sf::Keyboard::Up) {
-                        bus.controller |= 0x08;
+                        bus->controller |= 0x08;
                     } else if (event.key.code == sf::Keyboard::Down) {
-                        bus.controller |= 0x04;
+                        bus->controller |= 0x04;
                     } else if (event.key.code == sf::Keyboard::Right) {
-                        bus.controller |= 0x01;
+                        bus->controller |= 0x01;
                     } else if (event.key.code == sf::Keyboard::Left) {
-                        bus.controller |= 0x02;
+                        bus->controller |= 0x02;
                     } else if (event.key.code == sf::Keyboard::I) {
-                        instructionStep = !instructionStep;
+                        if (!running) {
+                            do {clock();} while (!cpu->instructionComplete);
+                            updateStatus();
+                            cpu->instructionComplete = false;
+                        }
                     } else if (event.key.code == sf::Keyboard::O) {
                         frameStep = !frameStep;
                     }
                     break;
                 case sf::Event::KeyReleased:
                     if (event.key.code == sf::Keyboard::Y) {
-                        bus.controller ^= 0x80;
+                        bus->controller ^= 0x80;
                     } else if (event.key.code == sf::Keyboard::X) {
-                        bus.controller ^= 0x40;
+                        bus->controller ^= 0x40;
                     } else if (event.key.code == sf::Keyboard::A) {
-                        bus.controller ^= 0x10;
+                        bus->controller ^= 0x10;
                     } else if (event.key.code == sf::Keyboard::S) {
-                        bus.controller ^= 0x20;
+                        bus->controller ^= 0x20;
                     } else if (event.key.code == sf::Keyboard::Up) {
-                        bus.controller ^= 0x08;
+                        bus->controller ^= 0x08;
                     } else if (event.key.code == sf::Keyboard::Down) {
-                        bus.controller ^= 0x04;
+                        bus->controller ^= 0x04;
                     } else if (event.key.code == sf::Keyboard::Right) {
-                        bus.controller ^= 0x01;
+                        bus->controller ^= 0x01;
                     } else if (event.key.code == sf::Keyboard::Left) {
-                        bus.controller ^= 0x02;
+                        bus->controller ^= 0x02;
                     }
                     break;
 
@@ -90,23 +97,30 @@ void NESemulator::run() {
         }
         //window.clear();
         if (running) {
-            while (!ppu.frameDone) {
+            while (!ppu->frameDone) {
                 clock();
+                updateStatus();
+                window.clear();
+                window.draw(screen);
+                for (int i = 0; i < 8; i++) {
+                    window.draw(cpuStatus[i]);
+                }
+                window.display();
             }
-            ppu.frameDone = false;
+            ppu->frameDone = false;
         } else {
-            if (instructionStep) {
+            /*if (instructionStep) {
                 //while (!cpu.instructionComplete) {
                   //  clock();
                 //}
-                do {clock();} while (!cpu.instructionComplete);
+                do {clock();} while (!cpu->instructionComplete);
                 instructionStep = false;
                 updateStatus();
-            } else if (frameStep) {
+            } else*/ if (frameStep) {
 
-                do {clock();} while (!ppu.frameDone);
+                do {clock();} while (!ppu->frameDone);
                 frameStep = false;
-                ppu.frameDone = false;
+                ppu->frameDone = false;
             }
         }
         window.clear();
@@ -144,7 +158,7 @@ void NESemulator::initStatus() {
 }
 void NESemulator::updateStatus() {
     for (int i = 0; i < 8; i++) {
-        if (cpu.SR & 1<<i) {
+        if (cpu->SR & 1<<i) {
             cpuStatus[i].setFillColor(sf::Color::Green);
         } else {
             cpuStatus[i].setFillColor(sf::Color::Red);
@@ -153,11 +167,9 @@ void NESemulator::updateStatus() {
 }
 
 void NESemulator::clock() {
-    ppu.clock();
+    ppu->clock();
     if (masterClock%3 == 0) {
-        cpu.clock();
+        cpu->clock();
     }
-    ppu.clock();
-
     masterClock++;
 }

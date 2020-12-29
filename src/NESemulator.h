@@ -19,9 +19,10 @@
 class NESemulator {
 public:
     Cartridge* cartridge;
-    Bus bus;
-    CPU6502 cpu;
-    PPU2C02 ppu;
+    //Bus bus;
+    Bus *bus;
+    CPU6502 *cpu;
+    PPU2C02 *ppu;
     uint16_t masterClock;
 
     sf::RenderWindow window;
