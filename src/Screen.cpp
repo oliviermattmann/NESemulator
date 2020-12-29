@@ -6,7 +6,7 @@
 
 
 
-void Screen::init(uint16_t width, uint16_t height, float pixelSize, sf::Color initColor)
+void Screen::init(uint16_t width, uint16_t height, float pixelSize, uint16_t xCoord, uint16_t yCoord, sf::Color initColor)
 /*{
     vertices.resize(width * height * 6);
     screenSize = {width, height};
@@ -16,7 +16,7 @@ void Screen::init(uint16_t width, uint16_t height, float pixelSize, sf::Color in
     {
         for (std::size_t y = 0; y < height; ++y)
         {
-            auto index = (x * screenSize.y + y) * 6;
+            auto index = (x + y * screenSize.x) * 6;
             sf::Vector2f coord2d (x * pSize, y * pSize);
 
             //Triangle-1
@@ -53,12 +53,14 @@ void Screen::init(uint16_t width, uint16_t height, float pixelSize, sf::Color in
     vertices.setPrimitiveType(sf::Quads);
     screenSize = {width, height};
     pSize = pixelSize;
+    xPos = xCoord;
+    yPos = yCoord;
 
     //initialize all pixels (squares)
     for (size_t y = 0; y < height; y++) {
         for (size_t x = 0; x < width; x++) {
             auto ind = (x + y * screenSize.x) * 4;
-            sf::Vector2f coordinates (x * pSize, y * pSize);
+            sf::Vector2f coordinates (xPos + x * pSize, yPos + y * pSize);
 
             /*
              * for all Corners the position and color needs to be set, the color is the same for all corners
@@ -89,7 +91,7 @@ void Screen::init(uint16_t width, uint16_t height, float pixelSize, sf::Color in
 void Screen::setPixel(size_t x, size_t y, sf::Color color) {
     auto ind = (x + y * screenSize.x) * 4;
     //check for overflow
-    if(ind < vertices.getVertexCount()) {
+    if(ind+1 < vertices.getVertexCount()) {
         //for corner 0
         vertices[ind].color = color;
 
@@ -101,6 +103,8 @@ void Screen::setPixel(size_t x, size_t y, sf::Color color) {
 
         //for corner 3
         vertices[ind + 3].color = color;
+
+
     }
 }
 
