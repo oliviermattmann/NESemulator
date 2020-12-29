@@ -7,7 +7,7 @@
 #include "Bus.h"
 #include <functional>
 
-
+class Bus;
 /**
  *  Emulating the NES picture processing unit.
  *  Documentation from https://wiki.nesdev.com
@@ -16,11 +16,11 @@ class PPU2C02 {
 
 
 public:
-    PPU2C02(Bus& mainBus, Screen& screen);
-
+    Bus *bus;
+    PPU2C02(Bus *busRef, Screen &screenRef);
     ~PPU2C02();
     void setNMI(std::function<void(void)> nmi);
-    Bus &bus;
+
     uint16_t scanLine = 0;
     uint16_t cycle = 0;
     std::function<void(void)> nmiVblank;
@@ -31,7 +31,7 @@ public:
 
     //Variables for the Screen
     bool frameDone = false;
-    Screen &ppuScreen;
+    Screen ppuScreen;
 
     //MEMORY MAP
     /*

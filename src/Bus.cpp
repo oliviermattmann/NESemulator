@@ -5,7 +5,9 @@
 
 
 
-Bus::Bus() {
+Bus::Bus() //:
+    //ppu
+{
     cartridge = Cartridge();
     masterClock = 0;
     for(uint8_t & text : RAM) {
@@ -22,7 +24,7 @@ uint8_t Bus::busRead(uint16_t address){
     if(address <= 0x1FFF) {
         return RAM[address & 0x07FF];
     } else if (address >= 0x2000 & address <= 0x3FFF) {
-        return  ppu2C02.readCPU(address);
+        return  ppu->readCPU(address);
     }
     else if (address >= 0x8000 & address <= 0xFFFF) {
         return cartridge.prgData[address%cartridge.BANKSIZE];
@@ -46,7 +48,7 @@ void Bus::busWrite(uint16_t address, uint8_t data){
         controller_status = controller;
     }
     else if (address >= 0x2000 & address <= 0x3FFF) {
-        ppu2C02.writeCPU(address, data);
+        ppu->writeCPU(address, data);
     }
 
 }

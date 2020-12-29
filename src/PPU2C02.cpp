@@ -3,10 +3,10 @@
 #include <functional>
 #include "PPU2C02.h"
 
-PPU2C02::PPU2C02(Bus& mainBus, Screen& screen) :
-        ppuScreen(screen),
-        bus(mainBus)
-{
+PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) {
+    ppuScreen = screenRef;
+    bus = busRef;
+    bus->ppu = this;
     // Todo Init Code, Bus ect...
     // Set IRQ Ignore bit
     /*
@@ -258,7 +258,7 @@ uint8_t PPU2C02::readPPU(uint16_t address) {
     address = address & 0x3FFF;
     uint8_t temp = 0x00;
     if (address < 0x2000) {
-        temp =  bus.cartridge.chrData[address];
+        temp =  bus->cartridge.chrData[address];
     } else if (address <= 0x3EFF) {
         address = (address & 0x0FFF);
         temp = nameTable[address & 0x03FF];
@@ -383,8 +383,8 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
 }
 void PPU2C02::clock() {
     //bus->renderer->updatePixel();
-    scanLine = (scanLine+1);
-    if (scanLine == 20000) {
+    scanLine = (scanLine+1)%201;
+    if (scanLine == 200) {
         frameDone = true;
         //nmiVblank();
     }

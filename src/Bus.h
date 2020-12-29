@@ -8,10 +8,13 @@
 #include <cstdint>
 #include "Cartridge.h"
 #include "SFML/System.hpp"
+#include "PPU2C02.h"
+#include "CPU6502.h"
 
 
 class Cartridge;
-
+class PPU2C02;
+class CPU6502;
 
 
 class Bus {
@@ -22,6 +25,8 @@ public:
     Cartridge cartridge;
     uint8_t controller;
     uint8_t controller_status;
+    PPU2C02 *ppu = nullptr;
+    CPU6502 *cpu = nullptr;
 
 
 

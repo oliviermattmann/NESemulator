@@ -12,6 +12,8 @@
 #include "Bus.h"
 #include "SFML/Graphics.hpp"
 
+
+class Bus;
 /**
  * Central processing unit emulating class.
  */
@@ -33,7 +35,7 @@ public:
 
     /* Bus Handling */
 
-    Bus &bus;
+    Bus *bus;
     //sf::Text &statusElements;
 
     /* cycle Handling */
@@ -48,7 +50,7 @@ public:
      * Constructor for the CPU6502 emulating class.
      * @param bus
      */
-    CPU6502(Bus &mainBus);
+    CPU6502(Bus *busRef);
 
     /**
      * Establishes a connection the the Bus

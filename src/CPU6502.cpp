@@ -17,9 +17,10 @@
  */
 CompactLogger logger = CompactLogger("CPU6502_log.txt");
 
-CPU6502::CPU6502(Bus &mainbus) :
-    bus(mainbus)
+CPU6502::CPU6502(Bus *busRef)
 {
+    bus = busRef;
+    bus->cpu = this;
     /* Bus */
     nesTestParser = new NesTestParser();
 
@@ -348,7 +349,6 @@ void CPU6502::clock() {
           }
           addCycleInc = false;
           opCycleInc = false;
-          instructionComplete = false;
       }
       cycle--;
     if (cycle == 0) {
@@ -364,8 +364,8 @@ void CPU6502::EXC_OP() {
     uint16_t tempPC = PC;
     (this->*OP_TABLE[op_code].x)();
     std::cout << "address: " << std::setfill('0') << std::setw(4)<< std::hex << int(addressparam)  << " |"<< std::endl;
-    nesTestParser->getLine();
-    nesTestParser->validate(tempPC, op_code, addressparam, ACC, X, Y, SR, SP);
+    //nesTestParser->getLine();
+    //nesTestParser->validate(tempPC, op_code, addressparam, ACC, X, Y, SR, SP);
     (this->*OP_TABLE[op_code].funcP)();
     std::cout << "_________________________________________"<< std::endl;
     implied = false;
@@ -550,11 +550,11 @@ void CPU6502::izy() {
 /* Bus Handling */
 
 void CPU6502::write(uint16_t address, uint8_t data) {
-    bus.busWrite(address,data);
+    bus->busWrite(address,data);
 }
 
 uint8_t CPU6502::read(uint16_t address) {
-    return bus.busRead(address);
+    return bus->busRead(address);
 }
 
 
@@ -961,9 +961,9 @@ void CPU6502::JSR(){
     //TODO check if PC-1 onto stack of PC
     //(Jump to Subroutine) The JSR instruction pushes the address (minus one) of the return point on to the stack (PC-1)
     // and then sets the program counter to the target memory address.
-    bus.busWrite(0x0100 + SP, ((PC-1) >> 8) & 0x00FF);     //push high-byte of PC-1 to Stack
+    bus->busWrite(0x0100 + SP, ((PC-1) >> 8) & 0x00FF);     //push high-byte of PC-1 to Stack
     SP--;                                                               //adjust StackPointer
-    bus.busWrite(0x0100 + SP, (PC-1) & 0x00FF);            //push low-byte of PC-1 to Stack
+    bus->busWrite(0x0100 + SP, (PC-1) & 0x00FF);            //push low-byte of PC-1 to Stack
     SP--;                                                               //adjust StackPointer to point to the next free space
     cout << "pushing pc to stack in this order:" << endl;
     cout << (((PC) >> 8) & 0x00FF) << endl;
@@ -977,9 +977,9 @@ void CPU6502::RTS(){
     //(Return from Subroutine) The RTS instruction is used at the end of a subroutine to return to the calling routine.
     //It pulls the program counter (minus one) from the stack.
     SP++;                                                                   //adjust StackPointer to top element
-    uint16_t low = (uint16_t)bus.busRead(0x0100 + SP);                //get low-byte from stack
+    uint16_t low = (uint16_t)bus->busRead(0x0100 + SP);                //get low-byte from stack
     SP++;                                                                   //adjust StackPointer
-    uint16_t high = (uint16_t)(bus.busRead(0x0100 + SP)) << 8;        //get high-byte from stack
+    uint16_t high = (uint16_t)(bus->busRead(0x0100 + SP)) << 8;        //get high-byte from stack
     PC = high + low + 1;                                                    //set new ProgramCounter
     logger.debug(__FUNCTION__ ,
                  "Return from Subroutine");
@@ -1156,11 +1156,11 @@ void CPU6502::BRK(){
     PC++;
     setStatusFlag(B, true);
     setStatusFlag(B2, true);
-    bus.busWrite(0x0100 + SP, (PC >> 8) & 0x00FF);  //push high byte of PC onto stack
+    bus->busWrite(0x0100 + SP, (PC >> 8) & 0x00FF);  //push high byte of PC onto stack
     SP--;
-    bus.busWrite(0x0100 + SP, PC & 0x00FF);        //push low byte of PC onto stack
+    bus->busWrite(0x0100 + SP, PC & 0x00FF);        //push low byte of PC onto stack
     SP--;
-    bus.busWrite(0x0100 + SP, SR);
+    bus->busWrite(0x0100 + SP, SR);
     SP--;
     setStatusFlag(I, true);
     //set PC to IRQ vector
@@ -1174,11 +1174,11 @@ void CPU6502::NOP(){}
 
 void CPU6502::RTI(){
     SP++;
-    SR = bus.busRead(0x0100 + SP);
+    SR = bus->busRead(0x0100 + SP);
     SP++;
-    uint16_t low = uint16_t (bus.busRead(0x0100 + SP));
+    uint16_t low = uint16_t (bus->busRead(0x0100 + SP));
     SP++;
-    uint16_t high = uint16_t ((bus.busRead(0x0100 + SP) << 8));
+    uint16_t high = uint16_t ((bus->busRead(0x0100 + SP) << 8));
     PC = high + low;
     setStatusFlag(B2, true);
     logger.debug(__FUNCTION__ ,
