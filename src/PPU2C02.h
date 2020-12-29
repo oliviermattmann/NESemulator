@@ -30,10 +30,9 @@ public:
 
 
     //Variables for the Screen
-    uint8_t pixelData[8];
+    uint8_t pixelData[8][8];
     bool frameDone = false;
     Screen &ppuScreen;
-
     //MEMORY MAP
     /*
         $0000-$0FFF 	$1000 	Pattern table 0

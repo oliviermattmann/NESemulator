@@ -437,23 +437,44 @@ void PPU2C02::drawToScreen() {
         }
         for(int j = 0; j < 8; j++) {
             for (int k = 0; k < 8; k++) {
-                if ((pixelData[j] << k) & SEVENTH) {
-                    col = sf::Color::Red;
-                } else {
-                    col = sf::Color::White;
-            }
+                switch (pixelData[j][k]) {
+                    case 0: col = sf::Color::Cyan;
+                        break;
+                    case 1: col = sf::Color::White;
+                        break;
+                    case 2: col = sf::Color::Red;
+                        break;
+                    case 3: col = sf::Color::Blue;
+                        break;
+                }
+
+
                 ppuScreen.setPixel(x + k, y + j, col);
             }
         }
     }
-
-
 }
 
 void PPU2C02::getPatternTile(uint16_t index) {
     index = index * 16;
 
-    for (int i = 0, j = 8; i < 8; i++, j++) {
-        pixelData[i] = bus->cartridge.chrData[index + i] | bus->cartridge.chrData[index + j];
+    for (int i = 0; i < 8; i++) {
+        uint8_t lo = bus->cartridge.chrData[index + i];
+        uint8_t hi = bus->cartridge.chrData[index + i + 8];
+        uint8_t temp;
+        for (int j = 7; j >=0; j--) {
+            if (lo & (1 << j)) {
+                if (hi & (1 << j)){
+                    temp = 3;
+                } else {
+                    temp = 1;
+                }
+            } else if (hi & (1 << j)) {
+                temp = 2;
+            } else {
+                temp = 0;
+            }
+            pixelData[i][7-j] = temp;
+        }
     }
 }
