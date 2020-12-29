@@ -383,11 +383,12 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
 }
 void PPU2C02::clock() {
     //bus->renderer->updatePixel();
-    scanLine = (scanLine+1)%201;
-    if (scanLine == 200) {
+    scanLine = (scanLine+1)%240;
+    if (scanLine == 255) {
         frameDone = true;
         //nmiVblank();
     }
+
 //does nothing for now
 }
 
@@ -425,3 +426,32 @@ void PPU2C02::clock() {
     cout << buff_out.c_str() << endl;
 }
  */
+//Print pattern Table atm
+void PPU2C02::drawToScreen() {
+    uint8_t x = 0, y = 0;
+    sf::Color col;
+    for (int i = 0; i < 960; i++) {
+        getPatternTile(i);
+        x = (i * 8)%256;
+        y = i / 32;
+        for(int j = 0; j < 8; j++) {
+            for (int k = 0; k < 8; k++) {
+                if ((pixelData[j] << k) & SEVENTH) {
+                    col = sf::Color::Red;
+                } else {
+                    col = sf::Color::White;
+            }
+                ppuScreen.setPixel(x + k, y + j, col);
+            }
+        }
+    }
+
+
+}
+
+void PPU2C02::getPatternTile(uint8_t index) {
+    index = index * 16;
+    for (int i = 0, j = 8; i < 8; i++, j++) {
+        pixelData[i] = bus->cartridge.chrData[index + i] | bus->cartridge.chrData[index + j];
+    }
+}

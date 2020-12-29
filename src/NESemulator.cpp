@@ -124,6 +124,8 @@ void NESemulator::run() {
             }
         }
         window.clear();
+        screen.setPixel(1, 90, sf::Color::Red);
+        ppu->drawToScreen();
         for (int i = 0; i < 8; i++) {
             window.draw(cpuStatus[i]);
         }

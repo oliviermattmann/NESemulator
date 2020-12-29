@@ -30,6 +30,7 @@ public:
 
 
     //Variables for the Screen
+    uint8_t pixelData[8];
     bool frameDone = false;
     Screen ppuScreen;
 
@@ -280,5 +281,9 @@ public:
      */
     void display_pixel(uint16_t p);
 
+    void drawToScreen();
+
+    void getPatternTile(uint8_t index);
 };
 #endif //NESEMULATOR_PPU2C02_H
+
