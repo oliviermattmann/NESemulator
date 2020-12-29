@@ -9,7 +9,7 @@ NESemulator::NESemulator() //:
     //ppu(bus, screen)
 {
     bus = new Bus();
-    cartridge = new Cartridge("../roms/nestest.nes");
+    cartridge = new Cartridge("../roms/DonkeyKong.nes");
     bus->insertCartridge(*cartridge);
     cpu = new CPU6502(bus);
     ppu = new PPU2C02(bus, screen);
@@ -27,7 +27,7 @@ void NESemulator::run() {
 
     window.create(sf::VideoMode(1024, 960), "Test Window",
                   sf::Style::Titlebar | sf::Style::Close);
-    screen.init(256, 240, 3, sf::Color::Cyan);
+    screen.init(256, 300, 3, sf::Color::Cyan);
     sf::Event event;
     bool running = false;
 

@@ -3,8 +3,7 @@
 #include <functional>
 #include "PPU2C02.h"
 
-PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) {
-    ppuScreen = screenRef;
+PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef): ppuScreen(screenRef) {
     bus = busRef;
     bus->ppu = this;
     // Todo Init Code, Bus ect...
@@ -432,8 +431,10 @@ void PPU2C02::drawToScreen() {
     sf::Color col;
     for (int i = 0; i < 960; i++) {
         getPatternTile(i);
-        x = (i * 8)%256;
-        y = i / 32;
+        x = (i* 8)% 128;
+        if(i%16 == 0 && i !=0) {
+            y +=8;
+        }
         for(int j = 0; j < 8; j++) {
             for (int k = 0; k < 8; k++) {
                 if ((pixelData[j] << k) & SEVENTH) {
@@ -449,8 +450,9 @@ void PPU2C02::drawToScreen() {
 
 }
 
-void PPU2C02::getPatternTile(uint8_t index) {
+void PPU2C02::getPatternTile(uint16_t index) {
     index = index * 16;
+
     for (int i = 0, j = 8; i < 8; i++, j++) {
         pixelData[i] = bus->cartridge.chrData[index + i] | bus->cartridge.chrData[index + j];
     }

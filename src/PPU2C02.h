@@ -32,7 +32,7 @@ public:
     //Variables for the Screen
     uint8_t pixelData[8];
     bool frameDone = false;
-    Screen ppuScreen;
+    Screen &ppuScreen;
 
     //MEMORY MAP
     /*
@@ -283,7 +283,7 @@ public:
 
     void drawToScreen();
 
-    void getPatternTile(uint8_t index);
+    void getPatternTile(uint16_t index);
 };
 #endif //NESEMULATOR_PPU2C02_H
 
