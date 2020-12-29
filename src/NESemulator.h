@@ -28,7 +28,8 @@ public:
     sf::RenderWindow window;
     sf::Text cpuStatus[8];
     sf::Font myFont;
-    Screen screen;
+    Screen mainScreen;
+    Screen patternScreens[2];
 
     bool instructionStep = false;
     bool frameStep = false;
@@ -41,6 +42,7 @@ public:
     void initStatus();
     void updateStatus();
     void clock();
+    void drawPatternTable(int number);
 
 
 };

@@ -12,7 +12,7 @@ NESemulator::NESemulator() //:
     cartridge = new Cartridge("../roms/DonkeyKong.nes");
     bus->insertCartridge(*cartridge);
     cpu = new CPU6502(bus);
-    ppu = new PPU2C02(bus, screen);
+    ppu = new PPU2C02(bus, mainScreen);
     masterClock = 0;
     cpu->RESET();
     ppu->setNMI([&](){cpu->NMI();});
@@ -27,7 +27,9 @@ void NESemulator::run() {
 
     window.create(sf::VideoMode(1024, 960), "Test Window",
                   sf::Style::Titlebar | sf::Style::Close);
-    screen.init(256, 300, 3, sf::Color::Cyan);
+    mainScreen.init(128, 120, 5, 50, 50, sf::Color::Cyan);
+    patternScreens[0].init(128, 128, 2, 750 ,100, sf::Color::White);
+    patternScreens[1].init(128, 128, 2, 750, 400, sf::Color::Green);
     sf::Event event;
     bool running = false;
 
@@ -101,7 +103,7 @@ void NESemulator::run() {
                 clock();
                 updateStatus();
                 window.clear();
-                window.draw(screen);
+                window.draw(mainScreen);
                 for (int i = 0; i < 8; i++) {
                     window.draw(cpuStatus[i]);
                 }
@@ -124,12 +126,16 @@ void NESemulator::run() {
             }
         }
         window.clear();
-        screen.setPixel(1, 90, sf::Color::Red);
+        mainScreen.setPixel(1, 90, sf::Color::Red);
         ppu->drawToScreen();
         for (int i = 0; i < 8; i++) {
             window.draw(cpuStatus[i]);
         }
-        window.draw(screen);
+        drawPatternTable(0);
+        drawPatternTable(1);
+        window.draw(mainScreen);
+        window.draw(patternScreens[0]);
+        window.draw(patternScreens[1]);
         window.display();
     }
 }
@@ -174,4 +180,39 @@ void NESemulator::clock() {
         cpu->clock();
     }
     masterClock++;
+}
+
+//Print pattern Table atm
+void NESemulator::drawPatternTable(int number) {
+    uint8_t patternTableNumber = number;
+    uint8_t x = 0, y = 0;
+    sf::Color col;
+    for (int i = 0; i < 256; i++) {
+        if (i >= 256) {
+            i = 1;
+        }
+        ppu->getPatternTile(i + number * 256);
+        x = (i* 8)% 128;
+        if(i%16 == 0 && i !=0) {
+            y +=8;
+        }
+        for(int j = 0; j < 8; j++) {
+            for (int k = 0; k < 8; k++) {
+                switch (ppu->pixelData[j][k]) {
+                    case 0: col = ppu->getColor(0x0f);
+                        break;
+                    case 1: col = ppu->getColor(0x15);
+                        break;
+                    case 2: col = ppu->getColor(0x2c);
+                        break;
+                    case 3: col = ppu->getColor(0x12);
+                        break;
+                }
+                int xVal = x + k;
+                int yVal = y + j;
+
+                patternScreens[patternTableNumber].setPixel(xVal, yVal, col);
+            }
+        }
+    }
 }
