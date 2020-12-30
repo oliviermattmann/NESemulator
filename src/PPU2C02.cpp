@@ -3,7 +3,9 @@
 #include <functional>
 #include "PPU2C02.h"
 
-PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef): ppuScreen(screenRef) {
+PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
+    ppuScreen(screenRef)
+{
     bus = busRef;
     bus->ppu = this;
     // Todo Init Code, Bus ect...
@@ -438,17 +440,15 @@ void PPU2C02::drawToScreen() {
         for(int j = 0; j < 8; j++) {
             for (int k = 0; k < 8; k++) {
                 switch (pixelData[j][k]) {
-                    case 0: col = sf::Color::Cyan;
+                    case 0: col = getColor(0x0f);
                         break;
-                    case 1: col = sf::Color::White;
+                    case 1: col = getColor(0x15);
                         break;
-                    case 2: col = sf::Color::Red;
+                    case 2: col = getColor(0x2c);
                         break;
-                    case 3: col = sf::Color::Blue;
+                    case 3: col = getColor(0x12);
                         break;
                 }
-
-
                 ppuScreen.setPixel(x + k, y + j, col);
             }
         }
@@ -477,4 +477,8 @@ void PPU2C02::getPatternTile(uint16_t index) {
             pixelData[i][7-j] = temp;
         }
     }
+}
+
+sf::Color PPU2C02::getColor(int8_t index) {
+    return {pallets[index].r, pallets[index].g, pallets[index].b, 255};
 }
