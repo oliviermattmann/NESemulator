@@ -25,9 +25,9 @@ NESemulator::~NESemulator() {
 
 void NESemulator::run() {
 
-    window.create(sf::VideoMode(1024, 960), "Test Window",
+    window.create(sf::VideoMode(1024, 960), "NES Emulator",
                   sf::Style::Titlebar | sf::Style::Close);
-    mainScreen.init(128, 120, 5, 50, 50, sf::Color::Cyan);
+    mainScreen.init(256, 240, 2.5, 50, 50, sf::Color::Cyan);
     patternScreens[0].init(128, 128, 2, 750 ,100, sf::Color::White);
     patternScreens[1].init(128, 128, 2, 750, 400, sf::Color::Green);
     sf::Event event;
@@ -98,7 +98,7 @@ void NESemulator::run() {
             }
         }
         //window.clear();
-        if (running) {
+        /*if (running) {
             while (!ppu->frameDone) {
                 clock();
                 updateStatus();
@@ -118,25 +118,30 @@ void NESemulator::run() {
                 do {clock();} while (!cpu->instructionComplete);
                 instructionStep = false;
                 updateStatus();
-            } else*/ if (frameStep) {
+            } else*/ /*if (frameStep) {
 
                 do {clock();} while (!ppu->frameDone);
                 frameStep = false;
                 ppu->frameDone = false;
             }
-        }
-        window.clear();
-        mainScreen.setPixel(1, 90, sf::Color::Red);
-        ppu->drawToScreen();
-        for (int i = 0; i < 8; i++) {
-            window.draw(cpuStatus[i]);
-        }
-        drawPatternTable(0);
-        drawPatternTable(1);
-        window.draw(mainScreen);
-        window.draw(patternScreens[0]);
-        window.draw(patternScreens[1]);
-        window.display();
+        }*/
+
+            do { clock(); } while (!ppu->frameDone);
+            ppu->frameDone = false;
+            window.clear();
+            ppu->drawToScreen();
+            for (int i = 0; i < 8; i++) {
+                window.draw(cpuStatus[i]);
+            }
+
+
+            drawPatternTable(0);
+            drawPatternTable(1);
+            window.draw(mainScreen);
+            window.draw(patternScreens[0]);
+            window.draw(patternScreens[1]);
+            window.display();
+
     }
 }
 void NESemulator::initStatus() {
