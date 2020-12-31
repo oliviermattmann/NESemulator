@@ -56,7 +56,7 @@ void NesTestParser::validate(uint16_t pc, uint8_t op, uint16_t address, uint8_t 
     }
     if (lineArray[3] != acc) {
         std::cout << "wrong accumulator, was: " << std::setfill('0') << std::setw(2)<< std::hex << (int)acc << " should have been: " << std::setfill('0') << std::setw(2)<< std::hex << lineArray[3] << std::endl;
-
+        std::cout << "PC: " << std::setfill('0') << std::setw(4)<< std::hex << pc << std::endl;
         std::cout << "filler" << std::endl;
     }
     if (lineArray[4] != x) {
