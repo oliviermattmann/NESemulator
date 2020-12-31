@@ -6,49 +6,7 @@
 
 
 
-void Screen::init(uint16_t width, uint16_t height, float pixelSize, uint16_t xCoord, uint16_t yCoord, sf::Color initColor)
-/*{
-    vertices.resize(width * height * 6);
-    screenSize = {width, height};
-    vertices.setPrimitiveType(sf::Triangles);
-    pSize = pixelSize;
-    for (std::size_t x = 0; x < width; ++x)
-    {
-        for (std::size_t y = 0; y < height; ++y)
-        {
-            auto index = (x + y * screenSize.x) * 6;
-            sf::Vector2f coord2d (x * pSize, y * pSize);
-
-            //Triangle-1
-            //top-left
-            vertices[index].position = coord2d;
-            vertices[index].color    = initColor;
-
-            //top-right
-            vertices[index + 1].position = coord2d + sf::Vector2f{pSize, 0};
-            vertices[index + 1].color = initColor;
-
-            //bottom-right
-            vertices[index + 2].position = coord2d + sf::Vector2f{pSize, pSize};
-            vertices[index + 2].color = initColor;
-
-            //Triangle-2
-            //bottom-right
-            vertices[index + 3].position = coord2d + sf::Vector2f{pSize, pSize};
-            vertices[index + 3].color = initColor;
-
-            //bottom-left
-            vertices[index + 4].position = coord2d + sf::Vector2f{0, pSize};
-            vertices[index + 4].color = initColor;
-
-            //top-left
-            vertices[index + 5].position = coord2d;
-            vertices[index + 5].color    = initColor;
-        }
-    }
-}*/
-
-{
+void Screen::init(uint16_t width, uint16_t height, float pixelSize, uint16_t xCoord, uint16_t yCoord, sf::Color initColor) {
     vertices.resize(width * height * 4);
     vertices.setPrimitiveType(sf::Quads);
     screenSize = {width, height};
@@ -91,7 +49,7 @@ void Screen::init(uint16_t width, uint16_t height, float pixelSize, uint16_t xCo
 void Screen::setPixel(size_t x, size_t y, sf::Color color) {
     auto ind = (x + y * screenSize.x) * 4;
     //check for overflow
-    if(ind+1 < vertices.getVertexCount()) {
+    if(ind+3 < vertices.getVertexCount()) {
         //for corner 0
         vertices[ind].color = color;
 
@@ -103,8 +61,6 @@ void Screen::setPixel(size_t x, size_t y, sf::Color color) {
 
         //for corner 3
         vertices[ind + 3].color = color;
-
-
     }
 }
 
