@@ -39,7 +39,6 @@ public:
     //sf::Text &statusElements;
 
     /* cycle Handling */
-    uint8_t OPcycles;
     bool addCycleInc;           //some addressing modes can cause an increase in cycles
     bool opCycleInc;            //some opcodes can cause an increase in cycles
                                 //cycles are only increased with both bools are set to true

@@ -341,8 +341,8 @@ void CPU6502::clock() {
           setStatusFlag(B2, true);
           op_code = read(PC);
           cycle = OP_TABLE[op_code].cycles;
-          std::cout << "| PC: 0x"<< std::setfill('0') << std::setw(4)<< std::hex << PC  << " |"<< std::endl;
-          std::cout << "op Code : " << std::hex << int(op_code) << std::endl;
+          //std::cout << "| PC: 0x"<< std::setfill('0') << std::setw(4)<< std::hex << PC  << " |"<< std::endl;
+          //std::cout << "op Code : " << std::hex << int(op_code) << std::endl;
           EXC_OP();
           if (addCycleInc && opCycleInc) {
               cycle++;
@@ -361,7 +361,7 @@ void CPU6502::clock() {
  */
 void CPU6502::EXC_OP() {
 
-    uint16_t tempPC = PC;
+    //uint16_t tempPC = PC;
     (this->*OP_TABLE[op_code].x)();
     std::cout << "address: " << std::setfill('0') << std::setw(4)<< std::hex << int(addressparam)  << " |"<< std::endl;
     //nesTestParser->getLine();
@@ -391,11 +391,11 @@ void CPU6502::RESET() {
 }
 
 void CPU6502::NMI() {
-    write(0x100 + SP, SR);
-    SP--;
-    write(0x100 + SP, uint8_t (PC & 0xFF00) >> 8);
+    write(0x100 + SP, ((PC & 0xFF00) >> 8));
     SP--;
     write(0x100 + SP, uint8_t (PC & 0x00FF));
+    SP--;
+    write(0x100 + SP, SR);
     SP--;
     setStatusFlag(I, true);
     uint16_t lo = read(0xFFFA);
@@ -563,15 +563,12 @@ uint8_t CPU6502::read(uint16_t address) {
 void CPU6502::LDA(){
     //possible it needs an additional cycle
     opCycleInc = true;
-
     uint8_t value = this->read(addressparam);
-    std::cout << addressparam << std::endl;
     this->setZero(value);
     this->setNegative(value);
     this->ACC = value;
     logger.debug(__FUNCTION__ ,
                  "loaded accumulator.");
-    displayRegisters();
 }
 
 void CPU6502::LDX(){
@@ -965,9 +962,6 @@ void CPU6502::JSR(){
     SP--;                                                               //adjust StackPointer
     bus->busWrite(0x0100 + SP, (PC-1) & 0x00FF);            //push low-byte of PC-1 to Stack
     SP--;                                                               //adjust StackPointer to point to the next free space
-    cout << "pushing pc to stack in this order:" << endl;
-    cout << (((PC) >> 8) & 0x00FF) << endl;
-    cout << ((PC)  & 0x00FF) << endl;
     PC = addressparam;                                                  //adjust ProgramCounter
     logger.debug(__FUNCTION__ ,
                  "Jump to Subroutine");
@@ -990,10 +984,10 @@ void CPU6502::BCC(){
     PC++;
     if (getStatusFlag(C) == false) {
         //branch is taken, so additional cycle needed
-        OPcycles++;
+        cycle++;
         //addressparam = PC + address_rel;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
-            OPcycles++;                                     //incremented
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+            cycle++;                                     //incremented
         }
         PC = addressparam;
     }
@@ -1005,10 +999,10 @@ void CPU6502::BCS(){
     PC++;
     if (getStatusFlag(C) == true) {
         //branch is taken, so additional cycle needed
-        OPcycles++;
+        cycle++;
         //addressparam = PC + address_rel;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
-            OPcycles++;                                     //incremented
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+            cycle++;                                     //incremented
         }
         PC = addressparam;
     }
@@ -1020,10 +1014,10 @@ void CPU6502::BEQ(){
     PC++;
     if (getStatusFlag(Z) == true) {
         //branch is taken, so additional cycle needed
-        OPcycles++;
+        cycle++;
         //addressparam = PC + address_rel;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
-            OPcycles++;                                     //incremented
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+            cycle++;                                     //incremented
         }
         PC = addressparam;
     }
@@ -1035,10 +1029,10 @@ void CPU6502::BMI(){
     PC++;
     if (getStatusFlag(N) == true) {
         //branch is taken, so additional cycle needed
-        OPcycles++;
+        cycle++;
         //addressparam = PC + address_rel;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
-            OPcycles++;                                     //incremented
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+            cycle++;                                     //incremented
         }
         PC = addressparam;
     }
@@ -1050,10 +1044,10 @@ void CPU6502::BNE(){
     PC++;
     if (getStatusFlag(Z) == false) {
         //branch is taken, so additional cycle needed
-        OPcycles++;
+        cycle++;
         //addressparam = PC + address_rel;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
-            OPcycles++;                                     //incremented
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+            cycle++;                                     //incremented
         }
         PC = addressparam;
     }
@@ -1065,10 +1059,10 @@ void CPU6502::BPL(){
     PC++;
     if (getStatusFlag(N) == false) {
         //branch is taken, so additional cycle needed
-        OPcycles++;
+        cycle++;
         //addressparam = PC + address_rel;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
-            OPcycles++;                                     //incremented
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+            cycle++;                                     //incremented
         }
         PC = addressparam;
     }
@@ -1080,10 +1074,10 @@ void CPU6502::BVC(){
     PC++;
     if (getStatusFlag(V) == false) {
         //branch is taken, so additional cycle needed
-        OPcycles++;
+        cycle++;
         //addressparam = PC + address_rel;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
-            OPcycles++;                                     //incremented
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+            cycle++;                                     //incremented
         }
         PC = addressparam;
     }
@@ -1095,10 +1089,10 @@ void CPU6502::BVS(){
     PC++;
     if (getStatusFlag(V) == true) {
         //branch is taken, so additional cycle needed
-        OPcycles++;
+        cycle++;
         //addressparam = PC + address_rel;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so OPcycles needs to be
-            OPcycles++;                                     //incremented
+        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+            cycle++;                                     //incremented
         }
         PC = addressparam;
     }
@@ -1166,8 +1160,7 @@ void CPU6502::BRK(){
     //set PC to IRQ vector
 
     PC = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
-    //does not work yet as this address is not implemented
-    // yet
+
 }
 
 void CPU6502::NOP(){}
@@ -1178,8 +1171,8 @@ void CPU6502::RTI(){
     SP++;
     uint16_t low = uint16_t (bus->busRead(0x0100 + SP));
     SP++;
-    uint16_t high = uint16_t ((bus->busRead(0x0100 + SP) << 8));
-    PC = high + low;
+    uint16_t high = uint16_t ((bus->busRead(0x0100 + SP)));
+    PC = (high << 8) | low;
     setStatusFlag(B2, true);
     logger.debug(__FUNCTION__ ,
                  "Return From Interrupt");
