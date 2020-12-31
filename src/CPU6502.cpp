@@ -363,11 +363,12 @@ void CPU6502::EXC_OP() {
 
     //uint16_t tempPC = PC;
     (this->*OP_TABLE[op_code].x)();
-    std::cout << "address: " << std::setfill('0') << std::setw(4)<< std::hex << int(addressparam)  << " |"<< std::endl;
+    //std::cout << hex << int(op_code) << " PC: " << PC << " ,SP: " << int(SP) << ", SR: "<< hex << int(SR) << std::endl;
+    //std::cout << "address: " << std::setfill('0') << std::setw(4)<< std::hex << int(addressparam)  << " |"<< std::endl;
     //nesTestParser->getLine();
     //nesTestParser->validate(tempPC, op_code, addressparam, ACC, X, Y, SR, SP);
     (this->*OP_TABLE[op_code].funcP)();
-    std::cout << "_________________________________________"<< std::endl;
+    //std::cout << "_________________________________________"<< std::endl;
     implied = false;
 }
 
