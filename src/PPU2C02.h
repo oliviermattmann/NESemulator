@@ -21,11 +21,16 @@ public:
     ~PPU2C02();
     void setNMI(std::function<void(void)> nmi);
 
-    uint16_t scanLine = 0;
+    uint8_t buffer = 0x00;
+    uint16_t ppuAddress = 0x0000;
+    uint16_t tempAddress = 0x0000;
+    bool addrLatch = false;
+
+    int16_t scanLine = -1;
     uint16_t cycle = 0;
     std::function<void(void)> nmiVblank;
 
-    uint8_t nameTable[1024];
+    uint8_t nameTable[2][1024];
     uint8_t paletteTable[32];
 
 
@@ -250,7 +255,7 @@ public:
      * @param addr requested register.
      * @return uint8_t data.
      */
-    uint8_t readCPU(uint16_t addr) const;
+    uint8_t readCPU(uint16_t addr);
 
     /**
     * Direct Access for writing register data.

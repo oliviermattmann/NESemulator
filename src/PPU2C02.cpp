@@ -14,7 +14,10 @@ PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
      * https://wiki.nesdev.com/w/index.php/IRQ
      */
     // memory init
-    for (uint8_t & text : this->nameTable) {
+    for (uint8_t & text : this->nameTable[0]) {
+        text = 0x00;
+    }
+    for (uint8_t & text : this->nameTable[1]) {
         text = 0x00;
     }
     for (uint8_t & text : this->SPR_RAM) {
@@ -104,6 +107,7 @@ PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
 
 PPU2C02::~PPU2C02() = default;
 
+
 void PPU2C02::setNMI(std::function<void()> nmi) {
     nmiVblank = nmi;
 }
@@ -115,6 +119,10 @@ void PPU2C02::set_ppu_ctrl(CTRL_MASK b, bool status) {
         this->ppu_ctrl &= ~b;
     }
 }
+/*
+ * GET AND SET METHODS
+ */
+
 
 bool PPU2C02::get_ppu_ctrl(CTRL_MASK b) const {
     return (b & this->ppu_ctrl);
@@ -226,7 +234,6 @@ void PPU2C02::set_ppu_data(uint8_t val) {
 
 uint8_t PPU2C02::get_ppu_data() const {
     return this->ppu_data;
-
 }
 
 // oam dma register
@@ -262,7 +269,14 @@ uint8_t PPU2C02::readPPU(uint16_t address) {
         temp =  bus->cartridge.chrData[address];
     } else if (address <= 0x3EFF) {
         address = (address & 0x0FFF);
-        temp = nameTable[address & 0x03FF];
+        if (address >= 0x0000 && address <= 0x03FF)
+            temp = nameTable[0][address & 0x03FF];
+        if (address >= 0x0400 && address <= 0x07FF)
+            temp = nameTable[0][address & 0x03FF];
+        if (address >= 0x0800 && address <= 0x0BFF)
+            temp = nameTable[1][address & 0x03FF];
+        if (address >= 0x0C00 && address <= 0x0FFF)
+            temp = nameTable[1][address & 0x03FF];
     } else if (address >= 0x3F00 && address <= 0x3FFF) {
         address &= 0x001F;
         if (address == 0x0010) {
@@ -290,7 +304,14 @@ void PPU2C02::writePPU(uint16_t address, uint8_t data) {
         return;
     } else if (address <= 0x3EFF) {
         address = (address & 0x0FFF);
-        nameTable[address & 0x03FF] = data;
+        if (address >= 0x0000 && address <= 0x03FF)
+            nameTable[0][address & 0x03FF] = data;
+        if (address >= 0x0400 && address <= 0x07FF)
+            nameTable[0][address & 0x03FF] = data;
+        if (address >= 0x0800 && address <= 0x0BFF)
+            nameTable[1][address & 0x03FF] = data;
+        if (address >= 0x0C00 && address <= 0x0FFF)
+            nameTable[1][address & 0x03FF] = data;
     } else if (address >= 0x3F00 && address <= 0x3FFF) {
         address &= 0x001F;
         if (address == 0x0010) {
@@ -318,32 +339,57 @@ void PPU2C02::reset_buff() {
 }
 
 
-uint8_t PPU2C02::readCPU(uint16_t address) const {
+uint8_t PPU2C02::readCPU(uint16_t address)  {
+    uint8_t dataOut = 0x00;
     if (address == 0x4014) {
-        return this->get_oam_dma();
+        dataOut = get_oam_dma();
     }
     switch (address & 0x0007) {
+        //control
         case 0x0000:
-            return this->get_ppu_ctrl();
+            //dataOut = get_ppu_ctrl();
+            break;
+        //Mask
         case 0x0001:
-            return this->get_ppu_mask();
+            //dataOut = get_ppu_mask();
+            break;
+        //Status
         case 0x0002:
-            return this->get_ppu_stat();
+            dataOut = get_ppu_stat() & 0xE0;//| (buffer&0x1F);
+            set_ppu_stat(STAT_MASK::VBLANK, false);
+            addrLatch = false;
+            break;
+        //OAM Address
         case 0x0003:
-            return this->get_oam_addr();
+            //dataOut = get_oam_addr();
+            break;
+        //OAM Data
         case 0x0004:
-            return this->get_oam_data();
+            dataOut = get_oam_data();
+            break;
+        //Scroll
         case 0x0005:
-            return this->get_ppu_scro();
+            //dataOut = get_ppu_scro();
+            break;
+        //PPU Address
         case 0x0006:
-            return this->get_ppu_addr();
+            //dataOut = get_ppu_addr();
+            break;
+        //PPU Data
         case 0x0007:
-            return this->get_ppu_data();
+            dataOut = buffer;
+            buffer = readPPU(ppuAddress);
+            if (ppuAddress >= 0x3F00) {
+                dataOut = buffer;
+            }
+            ppuAddress += (get_ppu_ctrl(CTRL_MASK::INCR_MODE)? 32 : 1);
+            break;
+        //DMA, not used yet
         case 0x4014: // Todo What about this?
-            return this->get_oam_dma();
-        default:
-            return 0x0;
+            dataOut = get_oam_dma();
+            break;
     }
+    return dataOut;
 }
 
 void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
@@ -359,7 +405,8 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
             break;
         case 0x0002:
             cout << "PPU reg 0x2002 is read only.";
-            this->set_ppu_stat(data);
+            cout << hex << int(bus->cpu->op_code) << endl;
+            //this->set_ppu_stat(data);
             break;
         case 0x0003:
             this->set_oam_addr(data);
@@ -371,10 +418,18 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
             this->set_ppu_scro(data);
             break;
         case 0x0006:
-            this->set_ppu_addr(data);
+            if (!addrLatch) {
+                tempAddress =  uint16_t ((data&0x3F) << 8) | tempAddress&0x00FF;
+                addrLatch = true;
+            } else {
+                tempAddress = (tempAddress&0xFF00) | uint16_t (data);
+                ppuAddress = tempAddress;
+                addrLatch = false;
+            }
             break;
         case 0x0007:
-            this->set_ppu_data(data);
+            this->writePPU(ppuAddress, data);
+            ppuAddress += (get_ppu_ctrl(CTRL_MASK::INCR_MODE)? 32 : 1);
             break;
         case 0x4014:  // Todo What about this?
             this->set_oam_dma(data);
@@ -384,13 +439,26 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
 }
 void PPU2C02::clock() {
     //bus->renderer->updatePixel();
-    scanLine = (scanLine+1)%240;
-    if (scanLine == 255) {
-        frameDone = true;
-        //nmiVblank();
+    if (scanLine == -1 && cycle == 1) {
+        set_ppu_stat(STAT_MASK::VBLANK, false);
     }
 
-//does nothing for now
+    if (scanLine == 241 && cycle == 1) {
+        set_ppu_stat(STAT_MASK::VBLANK, true);
+        frameDone = true;
+        if (get_ppu_ctrl(CTRL_MASK::NMI_ENABLE)) {
+            nmiVblank();
+            std::cout << "nmi" << std::endl;
+        }
+        //nmiVblank();
+    }
+    if (++cycle == 341) {
+        scanLine++;
+        cycle = 0;
+        if (scanLine == 261) {
+            scanLine = -1;
+        }
+    }
 }
 
 
@@ -432,9 +500,9 @@ void PPU2C02::drawToScreen() {
     uint8_t x = 0, y = 0;
     sf::Color col;
     for (int i = 0; i < 960; i++) {
-        getPatternTile(i);
-        x = (i* 8)% 128;
-        if(i%16 == 0 && i !=0) {
+        getPatternTile(nameTable[0][i]+256);
+        x = (i* 8)% 256;
+        if(i%32 == 0 && i !=0) {
             y +=8;
         }
         for(int j = 0; j < 8; j++) {
