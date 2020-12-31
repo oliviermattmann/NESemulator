@@ -68,7 +68,7 @@ const char *CompactLogger::get_level(LEVEL _level) {
 }
 
 void CompactLogger::debug(const char* function_name, const char *str) {
-    this->log(function_name, str, DEBUG);
+    //this->log(function_name, str, DEBUG);
 }
 
 void CompactLogger::info(const char *function_name, const char *str) {
