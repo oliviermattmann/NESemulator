@@ -47,13 +47,13 @@ void NESemulator::run() {
                         exit(0);
                     } else if (event.key.code == sf::Keyboard::P) {
                         running = !running;
-                    } else if (event.key.code == sf::Keyboard::Y) {
+                    } else if (event.key.code == sf::Keyboard::Y) {     //A Button
                         bus->controller |= 0x80;
-                    } else if (event.key.code == sf::Keyboard::X) {
+                    } else if (event.key.code == sf::Keyboard::X) {     //B Button
                         bus->controller |= 0x40;
-                    } else if (event.key.code == sf::Keyboard::A) {
+                    } else if (event.key.code == sf::Keyboard::A) {     //Select Button
                         bus->controller |= 0x10;
-                    } else if (event.key.code == sf::Keyboard::S) {
+                    } else if (event.key.code == sf::Keyboard::S) {     //Start Button
                         bus->controller |= 0x20;
                     } else if (event.key.code == sf::Keyboard::Up) {
                         bus->controller |= 0x08;
@@ -129,7 +129,7 @@ void NESemulator::run() {
             do { clock(); } while (!ppu->frameDone);
             ppu->frameDone = false;
             window.clear();
-            ppu->drawToScreen();
+            //ppu->drawToScreen();
             for (int i = 0; i < 8; i++) {
                 window.draw(cpuStatus[i]);
             }
@@ -193,9 +193,7 @@ void NESemulator::drawPatternTable(int number) {
     uint8_t x = 0, y = 0;
     sf::Color col;
     for (int i = 0; i < 256; i++) {
-        if (i >= 256) {
-            i = 1;
-        }
+
         ppu->getPatternTile(i + number * 256);
         x = (i* 8)% 128;
         if(i%16 == 0 && i !=0) {

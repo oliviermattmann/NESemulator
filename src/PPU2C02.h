@@ -16,21 +16,106 @@ class PPU2C02 {
 
 
 public:
-    Bus *bus;
+    //Constuctor and Destructor
     PPU2C02(Bus *busRef, Screen &screenRef);
     ~PPU2C02();
-    void setNMI(std::function<void(void)> nmi);
 
-    uint8_t buffer = 0x00;
+    //Bus connection
+    Bus *bus;
+
+    //Setter and Function Pointer for NonMaskableInterrupt
+    void setNMI(std::function<void(void)> nmi);
+    std::function<void(void)> nmiVblank;
+
+    //Loopy Register, credits go to https://wiki.nesdev.com/w/index.php/PPU_scrolling original document was from Loopy
+    uint16_t tempLoopy = 0x0000;
+    uint16_t absLoopy = 0x0000;
+    uint8_t fineX = 0x00;
+    bool writeToggle;
+    //loopy Helper Functions
+
+    void setCoarseX(uint8_t value);
+    uint8_t getCoarseX();
+    void setCoarseYHi(uint8_t value);
+    void setCoarseYLow(uint8_t value);
+    void setCoarseY(uint16_t value);
+    uint8_t getCoarseY();
+    void setNameTableID(uint8_t value);
+    uint8_t getNameTableID();
+    void setFineY(uint8_t value);
+    uint8_t getFineY();
+    void setFineX(uint8_t value);
+    uint8_t getFineX();
+
+    void incrementCoarseX();
+    void incrementY();
+    void updateLoopyX();
+    void updateLoopyY();
+
+    uint16_t  getTileAddress(uint16_t loopyRegister);
+    uint16_t getAttributeAddress(uint16_t loopyRegister);
+
+    //BACKGROUND
+    //---------------------------------------------------------------------
+    //temporary storage of fetched Data, the ppu loads the data for the next tile, while drawing the current tile
+    //more information can be found under the link below
+    uint8_t nameTableFetch;
+    uint8_t patternFetchLsb;
+    uint8_t patternFetchMsb;
+    uint8_t attributeFetch;
+
+    // shift registers for Background rendering see http://wiki.nesdev.com/w/index.php/PPU_rendering for details
+    //contain the pattern table information for 1 row of 2 tiles
+    uint16_t patternTableDataShift_bg_lsb;
+    uint16_t patternTableDataShift_bg_msb;
+    //contain the palette attribute for 1 row of 2 tiles
+    //unlike the wiki, where these shift registers are 8 bits long and are fed by a Latch, we use 16 bits and shift
+    //the same way as in the patternTable shift registers
+    uint16_t paletteAttributesShift_bg_lsb;
+    uint16_t paletteAttributesShift_bg_msb;
+
+    void loadShifters();
+    void shiftShifters();
+
+    //FOREGROUND
+    //Stores information of up to 64 Sprites for 1 frame
+    uint8_t primaryOAM[256];
+    //Stores information of up to 8 Sprites of current Scanline
+    uint8_t secondaryOAM[32];
+    //Sprite shift registers, 8 pairs, so 2 bytes for each sprite
+    uint8_t spriteShift[8][2];
+    //Sprite Latches which contain the attribute byte of up to 8 sprites
+    uint8_t spriteLatches[8];
+    //Sprite counters, contain the x position of up to 8 sprites
+    uint8_t spriteCounter[8];
+
+
+    //Multiplexer for determining the priority (Fore-/Background)
+    bool priorityMultiplexer(uint8_t backgroundColorID, uint8_t spritePixel, bool priority);
+    uint16_t fineXMultiplexer;
+
+
+
+    uint8_t dataBuffer = 0x00;
     uint16_t ppuAddress = 0x0000;
     uint16_t tempAddress = 0x0000;
     bool addrLatch = false;
 
+    uint8_t patternTableRow[2];
+
     int16_t scanLine = -1;
     uint16_t cycle = 0;
-    std::function<void(void)> nmiVblank;
+
+    enum State {
+        PreRender,
+        Render,
+        PostRender,
+        VerticalBlank
+    } renderState;
+
 
     uint8_t nameTable[2][1024];
+    uint8_t patternTable[2][4096];
     uint8_t paletteTable[32];
 
 
@@ -76,10 +161,78 @@ public:
         uint8_t b;
     };
 
+    //default color pallets
+    color colorData[64] {
+            {84, 84, 84},
+            {0, 30, 116},
+            {8, 16, 144},
+            {48, 0, 136},
+            {68, 0, 100},
+            {92, 0, 48},
+            {84, 4, 0},
+            {60, 24, 0},
+            {32, 42, 0},
+            {8, 58, 0},
+            {0, 64, 0},
+            {0, 60, 0},
+            {0, 50, 60},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {152, 150, 152},
+            {8, 76, 196},
+            {48, 50, 236},
+            {92, 30, 228},
+            {136,20, 176},
+            {160, 20, 100},
+            {152, 34, 32},
+            {120, 60, 0},
+            {84, 90, 0},
+            {40, 114, 0},
+            {8, 124, 0},
+            {0, 118, 40},
+            {0, 102, 120},
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0},
+            {236, 238, 236},
+            {76, 154, 236},
+            {120, 124, 236},
+            {176, 98, 236},
+            {228, 84, 236},
+            {236, 88, 180},
+            {236, 106, 100},
+            {212, 136, 32},
+            {160, 170, 0},
+            {116, 196, 0},
+            {76, 208, 32},
+            {56, 204, 108},
+            {56, 180, 204},
+            {60, 60, 60},
+            {0, 0, 0},
+            {0, 0, 0},
+            {236, 238, 236},
+            {168, 204, 236},
+            {188, 188, 236},
+            {212, 178, 236},
+            {236, 174, 236},
+            {236, 174, 212},
+            {236, 180, 176},
+            {228, 196, 144},
+            {204, 210, 120},
+            {180, 222, 120},
+            {168, 226, 144},
+            {152, 226, 180},
+            {160, 214, 228},
+            {160, 162, 160},
+            {0, 0, 0},
+            {0, 0, 0}
+    };
+
     /**
      * 56 colors. https://wiki.nesdev.com/w/images/5/59/Savtool-swatches.png
      */
-    color pallets[64];
+    sf::Color colors[64];
 
     /* Registers */
     /*
@@ -95,7 +248,7 @@ public:
     uint8_t ppu_ctrl;   // Control Register
     uint8_t ppu_mask;   // Mask Register
     uint8_t ppu_stat;   // Status Register
-    uint8_t ppu_scro;   // Fine Scroll Register
+    uint8_t ppu_scro = 0x00;   // Fine Scroll Register
     uint8_t ppu_addr;   // Address Register
     uint8_t ppu_data;   // Data Register
     uint8_t oam_addr;   // Address Register, OAM
@@ -283,9 +436,15 @@ public:
      * the second plane controls bit 1. Any pixel whose color is 0 is background/transparent
      * (represented by '.' in the following diagram)
      */
-    void display_pixel(uint16_t p);
 
-    void drawToScreen();
+
+    void updatePatternTileRowVar(uint16_t index);
+
+    uint8_t getPaletteID(uint16_t xInd, uint16_t yInd);
+
+    uint8_t getColorID(uint8_t xOffset);
+
+    sf::Color getColor(uint8_t palette, uint8_t colorIndex);
 
     void getPatternTile(uint16_t index);
 
