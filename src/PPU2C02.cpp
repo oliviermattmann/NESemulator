@@ -416,17 +416,13 @@ void PPU2C02::clock() {
             }
             if ((scanLine == -1) && cycle > 1) {
                 if (cycle < 256 || (cycle > 320 && cycle < 337)) {
-                    uint16_t tempAddress = ((nameTableFetch*16) + (absLoopy >> 12)&0x07) | ((get_ppu_ctrl(CTRL_MASK::BT_SELECT))<<12);
                     switch (cycle % 8) {
                         case 0:
                             incrementCoarseX();
                             loadShifters();
                             break;
                         case 1:
-                            //cout << "CoarseX: " << int(getCoarseX()) << endl;
-                            //cout << "absLoopy: " << bitset<16> (absLoopy) << endl;
                             nameTableFetch = readPPU(getTileAddress(absLoopy));
-                            //cout << int(nameTableFetch) << endl;
                             break;
                         case 3:
                             attributeFetch = readPPU(getAttributeAddress(absLoopy));
@@ -441,9 +437,7 @@ void PPU2C02::clock() {
                             attributeFetch &= 0x03;
                             break;
                         case 5:
-                            //cout << int ((get_ppu_ctrl(CTRL_MASK::BT_SELECT) << 12)+ nameTableFetch*16 + getFineY() + 0) << endl;
                             patternFetchLsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT)>>5) << 12)+ nameTableFetch*16 + getFineY() + 0);
-                            //cout << bitset<8> (patternFetchLsb) << endl;
                             break;
                         case 7:
                             patternFetchMsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT)>>5) << 12)+ nameTableFetch*16 + getFineY() + 8);
@@ -451,29 +445,18 @@ void PPU2C02::clock() {
                     }
                     shiftShifters();
                 }
-                //cout << "fineY: " << int(getFineY()) << " , CoarseY: " << int(getCoarseY()) << endl;
-                //cout << "fineX: " << int(getFineX()) << " , CoarseX: " << int(getCoarseX()) << endl;
-                //cout << "cycle: " << int(cycle) << " , Scanline: " << int(scanLine) << endl;
+
                 if (cycle == 256) {
                     incrementY();
                 }
-                if (cycle == 257) {
-                    //cout << "x transfer before (temp)" << bitset<16>(tempLoopy) << endl;
-                    //cout << "x transfer before (abs)" << bitset<16>(absLoopy) << endl;
-                    updateLoopyX();
-                    //cout << "x transfer after (temp)" << bitset<16>(tempLoopy) << endl;
-                    //cout << "x transfer after (abs)" << bitset<16>(absLoopy) << endl;
 
-                    tempLoopy = tempLoopy;
+                if (cycle == 257) {
+                    updateLoopyX();
                 }
+
                 if ((cycle > 279) || (cycle < 305)) {
                     if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE || ppu_mask & MASK_MASK::SPRITE_ENABLE) {
-                        //cout << "Y transfer before (temp)" << bitset<16>(tempLoopy) << endl;
-                        //cout << "Y transfer before (abs)" << bitset<16>(absLoopy) << endl;
                         updateLoopyY();
-                        //cout << "Y transfer after (temp)" << bitset<16>(tempLoopy) << endl;
-                        //cout << "Y transfer after (abs)" << bitset<16>(absLoopy) << endl;
-                        tempLoopy = tempLoopy;
                     }
                 }
                 if (cycle == 337 || cycle == 339) {
@@ -490,13 +473,11 @@ void PPU2C02::clock() {
             break;
         case Render:
             if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE || ppu_mask & MASK_MASK::SPRITE_ENABLE) {
-                //cout << bitset<8> (ppu_mask) << endl;
             }
             if (cycle == 0) {
 
             }
             if ((cycle > 0 && cycle < 256) || (cycle > 320 && cycle < 337)) {
-                uint16_t tempAddress = ((nameTableFetch*16) + (absLoopy >> 12)&0x07) | ((get_ppu_ctrl(CTRL_MASK::BT_SELECT))<<12);
                 switch (cycle % 8) {
                     case 0:
                         incrementCoarseX();
@@ -519,23 +500,13 @@ void PPU2C02::clock() {
                         break;
                     case 5:
 
-                        //cout << "lsb " <<int(tempAddress) << endl;
                         patternFetchLsb = bus->cartridge.chrData[(256*16) + nameTableFetch*16 + getFineY()];
-
-                        //cout << bitset<8> (patternFetchLsb) << endl;
-
-                        //cout << bitset<8> (patternTableRow[0]) << endl;
                         if (patternFetchLsb != 0) {
-                           // cout << "lsb not zero" << endl;
                         }
                         break;
                     case 7:
-                        //cout << "msb" << int(tempAddress + 8) << endl;
                         patternFetchMsb = bus->cartridge.chrData[(256*16) + nameTableFetch*16 + getFineY() + 8];
                         if (patternFetchMsb != 0) {
-                            //cout << "msb not zero" << endl;
-                            //cout << bitset<8> (patternFetchMsb) << endl;
-                            //cout << bitset<8> (patternTableRow[1]) << endl;
                         }
                         break;
                 }
@@ -543,31 +514,20 @@ void PPU2C02::clock() {
                     shiftShifters();
                 }
             }
-            //cout << "fineY: " << int(getFineY()) << " , CoarseY: " << int(getCoarseY()) << endl;
-            //cout << "fineX: " << int(getFineX()) << " , CoarseX: " << int(getCoarseX()) << endl;
-            //cout << "cycle: " << int(cycle) << " , Scanline: " << int(scanLine) << endl;
             if (cycle == 256) {
                 incrementY();
             }
             if ((cycle > 0 && cycle < 257)) {// && ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
                 fineXMultiplexer = 0x8000 >> getFineX();
                 if (patternTableDataShift_bg_lsb != 0 || patternTableDataShift_bg_msb != 0) {
-                    //cout << "should draw something" << endl;
                 }
-                uint8_t lsbC = (((patternTableDataShift_bg_lsb & fineXMultiplexer) > 0) ? 1 : 0) << 1;
-                uint8_t msbC = ((patternTableDataShift_bg_msb & fineXMultiplexer) > 0) ? 1 : 0;
+                uint8_t lsbC = (((patternTableDataShift_bg_lsb & fineXMultiplexer) > 0) ? 1 : 0);
+                uint8_t msbC = (((patternTableDataShift_bg_msb & fineXMultiplexer) > 0) ? 1 : 0) << 1;
                 uint8_t bgPixelColorID = (msbC | lsbC);
-                uint8_t bgPaletteID = (((paletteAttributesShift_bg_msb & fineXMultiplexer) > 0) << 1) |
-                                      (paletteAttributesShift_bg_lsb & fineXMultiplexer) > 0;
-                //cout << "x transfer before (abs)" << bitset<16>(absLoopy) << endl;
+                uint8_t bgPaletteID = (((paletteAttributesShift_bg_msb & fineXMultiplexer) > 0) << 1) | (paletteAttributesShift_bg_lsb & fineXMultiplexer) > 0;
+
                 ppuScreen.setPixel(cycle - 1, scanLine, getColor(bgPaletteID, bgPixelColorID));
-                /*cout << bitset<16> (patternTableDataShift_bg_lsb) << endl;
-                cout << bitset<16> (patternTableDataShift_bg_msb) << endl;
-                cout << bitset<16> (fineXMultiplexer) << endl;*/
                 shiftShifters();
-                /*cout << bitset<16> (patternTableDataShift_bg_lsb) << endl;
-                cout << bitset<16> (patternTableDataShift_bg_msb) << endl;
-                cout << bitset<16> (fineXMultiplexer) << endl;*/
             }
             if (cycle == 257) {
                 updateLoopyX();
@@ -603,7 +563,6 @@ void PPU2C02::clock() {
                 frameDone = true;
                 if (get_ppu_ctrl(CTRL_MASK::NMI_ENABLE)) {
                     nmiVblank();
-                    //cout << "nmi" << endl;
                 }
             }
             if (scanLine < 261 && cycle < 340) {
@@ -623,175 +582,6 @@ void PPU2C02::clock() {
 
     }
 }
-   /* if (scanLine >= -1 && scanLine < 240) {
-        if (scanLine == 0 && cycle == 0) {
-            cycle = 1;
-        }
-        if (scanLine == -1 && cycle == 1) {
-            set_ppu_stat(STAT_MASK::VBLANK, false);
-            set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, false);
-            set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, false);
-        }
-        if ((cycle >= 2 && cycle < 258) || (cycle >= 321 && cycle < 338)) {
-
-                shiftShifters();
-
-            switch ((cycle-1) % 8) {
-
-                case 0:
-                    //cout << bitset<8> (patternFetchLsb) << endl;
-                    //cout << bitset<8> (patternFetchMsb) << endl;
-                    loadShifters();
-                    if (patternTableDataShift_bg_lsb != 0 || patternTableDataShift_bg_msb != 0) {
-
-                        /*cout << bitset<16> (patternTableDataShift_bg_lsb) << endl;
-                        cout << bitset<16> (patternTableDataShift_bg_msb) << endl;
-                        cout << int(getCoarseX()) << endl;
-                        cout << int(getCoarseY()) << endl;*/
-                        //cout << "fuck you" << endl;*/
-
-                   /* }
-                    nameTableFetch = readPPU(getTileAddress(absLoopy));
-                    //cout << int(nameTableFetch) << endl;
-                    break;
-                case 2:
-                    attributeFetch = readPPU(getAttributeAddress(absLoopy));
-                    //the Attribute Fetch variable need to be adjusted to the section the tile is in
-                    if ((getCoarseX() & 0x02) && (getCoarseY() & 0x02)) {
-                        attributeFetch >>= 6;
-                    } else if (!(getCoarseX() & 0x02) && (getCoarseY() & 0x02)) {
-                        attributeFetch >>= 4;
-                    } else if ((getCoarseX() & 0x02) && !(getCoarseY() & 0x02)) {
-                        attributeFetch >>= 2;
-                    }
-                    attributeFetch &= 0x03;
-                    break;
-                case 4:
-                    patternFetchLsb = readPPU(((ppu_ctrl&CTRL_MASK::BT_SELECT)<<12) + (nameTableFetch<<4) + getFineY());
-                    if (patternFetchLsb != 0) {
-                        //cout << bitset<8>(patternFetchLsb) << endl;
-                        break;
-                    }
-                    break;
-                case 6:
-                    patternFetchMsb = readPPU(((ppu_ctrl&CTRL_MASK::BT_SELECT)<<12) + (nameTableFetch<<4) + getFineY() + 8);
-                    if (patternFetchMsb != 0) {
-                        //cout << bitset<8>(patternFetchMsb) << endl;
-                        break;
-                    }
-                    break;
-                case 7:
-                    incrementCoarseX();
-                    break;
-            }
-            //uint16_t coarseY = scanLine/8;
-            //uint16_t coarseX = cycle/8;
-            //updatePatternTileRowVar(nameTable[0][coarseY * 32 + coarseX] + 256);
-
-            if (cycle == 256) {
-                incrementY();
-            }
-
-            if (cycle == 257) {
-                //only done when rendering is enabled
-                    loadShifters();
-                    updateLoopyX();
-
-            }
-            if (((cycle >= 280) && (cycle <= 304))) {
-
-                updateLoopyY();
-
-            }
-           /* if ((cycle - 1) == 337 || (cycle-1)==339) {
-                nameTableFetch = readPPU(getTileAddress(absLoopy));
-            }*/
-
-
-
-  /*      }
-
-        if (scanLine == 240) {
-
-        }
-
-
-        //uint8_t paletteID = getPaletteID(cycle, scanLine);
-        //uint8_t colorID = getColorID(cycle&0x07);
-
-        //ppuScreen.setPixel(cycle, scanLine, getColor(paletteID, colorID));
-    }
-    if (false) {
-        cout << "Loopy: " << "cX = " << (int) getCoarseX() << " ,x = " << int(getFineX()) << endl;
-        cout << "cY = " << int(getCoarseY()) << " ,y = " << int(getFineY()) << endl;
-        cout << "scanline: " << int(scanLine) << " ,cycle: " << int(cycle) << endl;
-    }
-
-    if (scanLine == 241 && cycle == 1) {
-        set_ppu_stat(STAT_MASK::VBLANK, true);
-        frameDone = true;
-        if (get_ppu_ctrl(CTRL_MASK::NMI_ENABLE)) {
-            nmiVblank();
-            cout << "nmi" << endl;
-        }
-    }
-    if (scanLine < 240 && scanLine > -1 && ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
-        fineXMultiplexer = 0x8000 >> getFineX();
-        //cout << bitset<16> (patternTableDataShift_bg_lsb) << endl;
-        //cout << bitset<16> (patternTableDataShift_bg_msb) << endl;
-        //cout << bitset<16> (fineXMultiplexer) << endl;
-
-        uint8_t lsbC = (((patternTableDataShift_bg_lsb & fineXMultiplexer) > 0) ? 1:0) << 1;
-        uint8_t msbC = ((patternTableDataShift_bg_msb & fineXMultiplexer) > 0) ? 1:0;
-        //cout << int(msbC | lsbC) << endl;
-        uint8_t bgPixelColorID = (msbC | lsbC);
-        uint8_t bgPaletteID = (((paletteAttributesShift_bg_msb & fineXMultiplexer) > 0) << 1) | (paletteAttributesShift_bg_lsb & fineXMultiplexer) >0;
-        ppuScreen.setPixel(cycle-1, scanLine, getColor(bgPaletteID, bgPixelColorID));
-    }
-    cycle++;
-    if (cycle == 341) {
-        scanLine++;
-        cycle = 0;
-        if (scanLine == 261) {
-            scanLine = -1;
-        }
-    }
-}
-
-
-/*void PPU2C02::display_pixel(uint16_t p) {
-    // -> nesdoc page 19
-    if (p > 1024) {
-        return;
-    }
-    std::string buff_out;
-    if (p % 2 == 1) p--;
-    int i = p * 8;
-    int j = i + 8;
-    while (true) {
-        uint8_t p_1 = this->VRAM[i];
-        uint8_t p_2 = this->VRAM[j];
-        for (int b = 0; b < 8; b++) {
-            if (p_1 & 1 << b && p_2 & 1 << b) {
-                buff_out.append("3 ");
-            } else if (p_1 & 1 << b) {
-                buff_out.append("1 ");
-            } else if (p_2 & 1 << b) {
-                buff_out.append("2 ");
-            } else {
-                buff_out.append("0 ");
-            }
-        }
-        buff_out.append("\n");
-        i++;
-        j++;
-        if (i % 8 == 0) {
-            break;
-        }
-    }
-    cout << buff_out.c_str() << endl;
-}
- */
 
 /*
  * Updates the patternTileRowVar variable for 8 pixels in 1 row
@@ -941,6 +731,7 @@ uint16_t  PPU2C02::getTileAddress(uint16_t loopy) {
 
 uint16_t PPU2C02::getAttributeAddress(uint16_t loopy) {
     return 0x23C0 | (loopy & 0x0C00) | (loopy >> 4) & 0x38 | ((loopy >> 2) & 0x07);
+
 }
 
 /*
