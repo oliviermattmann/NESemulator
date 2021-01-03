@@ -405,6 +405,7 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
 }
 void PPU2C02::clock() {
 
+
     switch (renderState) {
         case PreRender:
             if ((scanLine == -1) && cycle == 1) {
@@ -457,11 +458,22 @@ void PPU2C02::clock() {
                     incrementY();
                 }
                 if (cycle == 257) {
+                    //cout << "x transfer before (temp)" << bitset<16>(tempLoopy) << endl;
+                    //cout << "x transfer before (abs)" << bitset<16>(absLoopy) << endl;
                     updateLoopyX();
+                    //cout << "x transfer after (temp)" << bitset<16>(tempLoopy) << endl;
+                    //cout << "x transfer after (abs)" << bitset<16>(absLoopy) << endl;
+
+                    tempLoopy = tempLoopy;
                 }
                 if ((cycle > 279) || (cycle < 305)) {
                     if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE || ppu_mask & MASK_MASK::SPRITE_ENABLE) {
+                        //cout << "Y transfer before (temp)" << bitset<16>(tempLoopy) << endl;
+                        //cout << "Y transfer before (abs)" << bitset<16>(absLoopy) << endl;
                         updateLoopyY();
+                        //cout << "Y transfer after (temp)" << bitset<16>(tempLoopy) << endl;
+                        //cout << "Y transfer after (abs)" << bitset<16>(absLoopy) << endl;
+                        tempLoopy = tempLoopy;
                     }
                 }
                 if (cycle == 337 || cycle == 339) {
@@ -477,7 +489,9 @@ void PPU2C02::clock() {
             }
             break;
         case Render:
-
+            if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE || ppu_mask & MASK_MASK::SPRITE_ENABLE) {
+                //cout << bitset<8> (ppu_mask) << endl;
+            }
             if (cycle == 0) {
 
             }
@@ -506,7 +520,7 @@ void PPU2C02::clock() {
                     case 5:
 
                         //cout << "lsb " <<int(tempAddress) << endl;
-                        patternFetchLsb = bus->cartridge.chrData[(256*16) + (getCoarseY()*32*16) + (getCoarseX()*16) + getFineY()];
+                        patternFetchLsb = bus->cartridge.chrData[(256*16) + nameTableFetch*16 + getFineY()];
 
                         //cout << bitset<8> (patternFetchLsb) << endl;
 
@@ -517,7 +531,7 @@ void PPU2C02::clock() {
                         break;
                     case 7:
                         //cout << "msb" << int(tempAddress + 8) << endl;
-                        patternFetchMsb = bus->cartridge.chrData[(256*16) + (getCoarseY()*32*16) + (getCoarseX()*16) + getFineY() + 8];
+                        patternFetchMsb = bus->cartridge.chrData[(256*16) + nameTableFetch*16 + getFineY() + 8];
                         if (patternFetchMsb != 0) {
                             //cout << "msb not zero" << endl;
                             //cout << bitset<8> (patternFetchMsb) << endl;
@@ -545,6 +559,7 @@ void PPU2C02::clock() {
                 uint8_t bgPixelColorID = (msbC | lsbC);
                 uint8_t bgPaletteID = (((paletteAttributesShift_bg_msb & fineXMultiplexer) > 0) << 1) |
                                       (paletteAttributesShift_bg_lsb & fineXMultiplexer) > 0;
+                //cout << "x transfer before (abs)" << bitset<16>(absLoopy) << endl;
                 ppuScreen.setPixel(cycle - 1, scanLine, getColor(bgPaletteID, bgPixelColorID));
                 /*cout << bitset<16> (patternTableDataShift_bg_lsb) << endl;
                 cout << bitset<16> (patternTableDataShift_bg_msb) << endl;
@@ -888,17 +903,17 @@ uint8_t PPU2C02::getFineX() {
  * https://wiki.nesdev.com/w/index.php/PPU_scrolling
  */
 void PPU2C02::incrementCoarseX() {
-    //if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
+    if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
         if ((absLoopy & 0x001F) == 31) {
             absLoopy &= ~0x001F;
             absLoopy ^= 0x0400;
         } else {
             absLoopy++;
         }
-    //}
+    }
 }
 void PPU2C02::incrementY() {
-    //if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
+    if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
         if ((absLoopy & 0x7000) != 0x7000) {
             int8_t fineY = getFineY();
             absLoopy += 0x1000;
@@ -917,7 +932,7 @@ void PPU2C02::incrementY() {
             absLoopy &= (~0x03E0);
             absLoopy |= (y << 5);
         }
-   // }
+    }
 }
 
 uint16_t  PPU2C02::getTileAddress(uint16_t loopy) {
@@ -947,7 +962,7 @@ void PPU2C02::loadShifters() {
 }
 
 void PPU2C02::shiftShifters() {
-    if (ppu_mask ) {//& MASK_MASK::BACKGROUND_ENABLE) {
+    if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
 
 
         patternTableDataShift_bg_lsb <<= 1;
@@ -961,19 +976,19 @@ void PPU2C02::shiftShifters() {
 }
 
 void PPU2C02::updateLoopyX() {
-    //if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
+    if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
         //update coarseX
         absLoopy &= (~0x001F);
         absLoopy |= (tempLoopy & 0x001F);
         //update nametable
         absLoopy &= (~0x0400);
         absLoopy |= (tempLoopy & 0x0400);
-    //}
+    }
 }
 
 void PPU2C02::updateLoopyY() {
     //update fineY
-    //if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
+    if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
         absLoopy &= (~0x7000);
         absLoopy |= (tempLoopy & 0x7000);
         //update nametable
@@ -982,5 +997,5 @@ void PPU2C02::updateLoopyY() {
         //update coarse Y
         absLoopy &= (~0x03E0);
         absLoopy |= (tempLoopy & 0x03E0);
-    //}
+    }
 }
