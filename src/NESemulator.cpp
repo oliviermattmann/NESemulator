@@ -189,7 +189,7 @@ void NESemulator::clock() {
                 }
             } else {
                 if (masterClock % 2 == 1) {
-                    bus->dmaData = bus->busRead((bus->dmaPage<<2) | bus->dmaAddress);
+                    bus->dmaData = bus->busRead((bus->dmaPage<<8) | bus->dmaAddress);
                 } else {
                     ppu->primaryOAM[bus->dmaAddress] = bus->dmaData;
                     bus->dmaAddress++;

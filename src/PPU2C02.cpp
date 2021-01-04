@@ -546,23 +546,34 @@ void PPU2C02::clock() {
                     shiftShifters();
                 }
                 if (ppu_mask & MASK_MASK::SPRITE_ENABLE) {
+                    bool pixelSet = false;
                    for (int i = 0; i < 8; i++) {
+
                        //TODO Reset dont know what
                        if (spriteCounter[i] < -7) {
-                           break;
-                       }
-                       //Have we hit the beginning of this sprite yet?
-                       if (spriteCounter[i] > 1) {
-                           //TODO Flip Vertical and Horizontal
-                           spritePixelColorID = (spriteShift[i][1] & 0x80 << 1) | (spriteShift[i][0] & 0x80);
-                           spritePaletteID = spriteAttribute[i]&0x03;
-                           spritePriority = spriteAttribute[i]&0x20;
-                           spriteShift[i][1] <<= 1;
-                           spriteShift[i][1] <<= 1;
+                           //do nothing
+                       } else if (spriteCounter[i] > 0) { //Have we hit the beginning of this sprite yet?
 
-                           break;
-                       } else {
+
+                           //TODO Flip Vertical and Horizontal
+                           //cout << "sprite " << i << ", counter : " << int(spriteCounter[i]) << endl;
                            spriteCounter[i]--;
+
+                       } else if (!pixelSet){
+                           spritePixelColorID = (((spriteShift[i][1] & 0x80) > 0 ? 1:0) << 1) | (((spriteShift[i][0] & 0x80) > 0 ? 1:0));
+                           spritePaletteID = spriteAttribute[i]&0x03;
+                           spritePriority = spriteAttribute[i]&0x10;
+                           spriteShift[i][0] <<= 1;
+                           spriteShift[i][1] <<= 1;
+                           spriteCounter[i]--;
+                           pixelSet = true;
+                           //cout << "sprite " << i << ", counter : " << int(spriteCounter[i]) << endl;
+
+                       } else {
+                           spriteShift[i][0] <<= 1;
+                           spriteShift[i][1] <<= 1;
+                           spriteCounter[i]--;
+                           //cout << "sprite " << i << ", counter : " << int(spriteCounter[i]) << endl;
                        }
                    }
 
@@ -571,7 +582,7 @@ void PPU2C02::clock() {
                     if (spritePixelColorID) {
                         //sprite priority: true = behind background; false = in the front of the background
                         if (!spritePriority) {
-                            finalPaletteID = spritePaletteID;
+                            finalPaletteID = 4 + spritePaletteID;
                             finalPixelColorID = spritePixelColorID;
                         } else {
                             if (bgPixelColorID) {
@@ -579,7 +590,7 @@ void PPU2C02::clock() {
                                 finalPaletteID = bgPaletteID;
                             } else {
                                 finalPixelColorID = spritePixelColorID;
-                                finalPaletteID = spritePaletteID;
+                                finalPaletteID = 4 + spritePaletteID;
                             }
                         }
 
@@ -615,6 +626,11 @@ void PPU2C02::clock() {
                 scanLine = 241;
                 cycle = 0;
                 renderState = VerticalBlank;
+                //cout << "----------------------------------------------------------------------------------------------------------" << endl;
+                for (int i = 0; i < 64; i++) {
+                    //cout << "Y-Address: " << int(primaryOAM[i*4]) << ", Pattern Index: " << int(primaryOAM[i*4+1]) << ", Attribute Byte: " << bitset<8>(primaryOAM[i*4+2]) << ", X-Position: " << int(primaryOAM[i*4+3])<< endl;
+                }
+
             }
 
 
@@ -837,44 +853,110 @@ void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
     //byte 3 left x position of sprite
     std::memset(spriteAttribute, 0, sizeof(spriteAttribute));
     std::memset(spriteCounter, 0, sizeof(spriteCounter));
-    std::memset(spriteShift, 0xFF, sizeof(spriteShift));
+    std::memset(spriteShift, 0x00, sizeof(spriteShift));
+    std::memset(secondaryOAM, 0xFF, sizeof(secondaryOAM));
     spriteCount = 0;
     uint8_t count = 0;
-    while(spriteCount < 9 && count < 64) {
+    while (spriteCount < 9 && count < 64) {
         //cout << int(primaryOAM[count*4]) << endl;
-        if (primaryOAM[count*4]<=(nextScanLine)) {
-            int16_t difference = (nextScanLine) - uint16_t(primaryOAM[count+4]);
-            if(get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT)) {
-                if (difference < 16) {
-                    if (spriteCount == 8) {
-                        set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, true);
-                        break;
-                    }
-                    std::copy(primaryOAM + (count * 4), primaryOAM + (count * 4 + 4),
-                              secondaryOAM + (spriteCount * 4));
-
-                    spriteAttribute[spriteCount] = primaryOAM[count * 4 + 2];
-                    spriteCounter[spriteCount] = primaryOAM[count * 4 + 3];
-
-                    spriteShift[0][spriteCount] = readPPU(((primaryOAM[count * 4 + 1]&0x01) << 12) + (primaryOAM[count * 4 + 1]&0xFE) + getFineY());
-                    spriteShift[1][spriteCount] = readPPU(((primaryOAM[count * 4 + 1]&0x01) << 12) + (primaryOAM[count * 4 +1]&0xFE) + getFineY() + 8);
-                    spriteCount++;
+        if (primaryOAM[count * 4] <= (nextScanLine)) {
+            int16_t difference = (nextScanLine) - uint16_t(primaryOAM[count * 4]);
+            bool verticalFlip = false;
+            bool horizontalFlip = false;
+            //if(get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT)) {
+            if ((difference < 16 && get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT))
+                || (difference < 8 && !get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT))) {
+                if (spriteCount == 8) {
+                    set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, true);
+                    break;
                 }
-            } else {
-                if (difference < 8) {
-                    if (spriteCount == 8) {
-                        set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, true);
-                        break;
+                std::memcpy(secondaryOAM + sizeof(uint8_t) * 4 * spriteCount, primaryOAM + sizeof(uint8_t) * 4 * count,
+                            sizeof(uint8_t) * 4);
+                spriteAttribute[spriteCount] = primaryOAM[count * 4 + 2];
+                spriteCounter[spriteCount] = primaryOAM[count * 4 + 3];
+                //check bit 7 and 6 to determine if the sprite needs to be flipped
+                bool verticalFlip = ((spriteAttribute[spriteCount] & 0x80) > 0);
+                bool horizontalFlip = ((spriteAttribute[spriteCount] & 0x40) > 0);
+                if (get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT)) {
+                    if (verticalFlip) {
+                        if (difference < 8) {
+                            spriteShift[spriteCount][0] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
+                                                                          ((secondaryOAM[spriteCount * 4 + 1] & 0xFE)) * 16 +
+                                                                  (7 - difference));
+                            spriteShift[spriteCount][1] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
+                                                                  ((secondaryOAM[spriteCount * 4 + 1] & 0xFE)) * 16 +
+                                                                  (7 - difference) + 8);
+                        } else {
+                            spriteShift[spriteCount][0] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
+                                                                  ((secondaryOAM[spriteCount * 4 + 1] & 0xFE) + 1) * 16 +
+                                                                  (7 - difference));
+                            spriteShift[spriteCount][1] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
+                                                                          ((secondaryOAM[spriteCount * 4 + 1] & 0xFE) + 1) * 16 +
+                                                                  (7 - difference) + 8);
+
+                        }
+                    } else {
+                        if (difference < 8) {
+                            spriteShift[spriteCount][0] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
+                                                                  (secondaryOAM[spriteCount * 4 + 1] & 0xFE) * 16 +
+                                                                  difference);
+                            spriteShift[spriteCount][1] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
+                                                                  (secondaryOAM[spriteCount * 4 + 1] & 0xFE) * 16 +
+                                                                  difference + 8);
+
+                        } else {
+                            spriteShift[spriteCount][0] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
+                                                                  ((secondaryOAM[spriteCount * 4 + 1] & 0xFE)+1) * 16 +
+                                                                  difference);
+                            spriteShift[spriteCount][1] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
+                                                                          ((secondaryOAM[spriteCount * 4 + 1] & 0xFE)+1) * 16 +
+                                                                  difference + 8);
+
+                        }
+
+
                     }
-                    std::copy(primaryOAM + (count * 4), primaryOAM + (count * 4 + 4),
-                              secondaryOAM + (spriteCount * 4));
-                    spriteAttribute[spriteCount] = primaryOAM[count * 4 + 2];
-                    spriteCounter[spriteCount] = primaryOAM[count * 4 + 3];
-                    spriteShift[0][spriteCount] = readPPU((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0) << 12 + primaryOAM[count * 4 + 1]*16 + getFineY());
-                    spriteShift[1][spriteCount] = readPPU((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0) << 12 + primaryOAM[count * 4 + 1]*16 + getFineY() + 8);
-                    spriteCount++;
+                } else {
+                    if (verticalFlip) {
+
+                        spriteShift[spriteCount][0] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1 : 0) << 12) +
+                                                              secondaryOAM[spriteCount * 4 + 1] * 16 +
+                                                              (7 - difference));
+                        spriteShift[spriteCount][1] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1 : 0) << 12) +
+                                                              secondaryOAM[spriteCount * 4 + 1] * 16 +
+                                                              (7 - difference) + 8);
+                    } else {
+                        spriteShift[spriteCount][0] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1 : 0) << 12) +
+                                                              secondaryOAM[spriteCount * 4 + 1] * 16 + difference);
+                        spriteShift[spriteCount][1] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1 : 0) << 12) +
+                                                              secondaryOAM[spriteCount * 4 + 1] * 16 + difference + 8);
+                    }
                 }
+                if (horizontalFlip) {
+                    flipHorizonally(spriteCount);
+                }
+
+
+                spriteCount++;
             }
+            /* } else {
+                 if (difference < 8) {
+                     if (spriteCount == 8) {
+                         set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, true);
+                         break;
+                     }
+                     std::memcpy(secondaryOAM+sizeof(uint8_t)*4*spriteCount, primaryOAM + sizeof(uint8_t)*4*count, sizeof(uint8_t)*4);
+                     spriteAttribute[spriteCount] = primaryOAM[count * 4 + 2];
+                     spriteCounter[spriteCount] = primaryOAM[count * 4 + 3];
+
+                     //cout << int(spriteCounter[spriteCount]) << endl;
+                     spriteShift[spriteCount][0] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1:0) << 12) + secondaryOAM[spriteCount * 4 + 1]*16 + difference);
+                     spriteShift[spriteCount][1] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1:0) << 12) + secondaryOAM[spriteCount * 4 + 1]*16 + difference + 8);
+                     spriteCount++;
+                 }
+             }
+
+         }*/
 
         }
         count++;
@@ -904,4 +986,22 @@ void PPU2C02::updateLoopyY() {
         absLoopy &= (~0x03E0);
         absLoopy |= (tempLoopy & 0x03E0);
     }
+}
+
+void PPU2C02::flipHorizonally(uint8_t spriteIndex) {
+
+    for (int i = 0; i < 2; i++) {
+        uint8_t temp = 0x00;
+        //cout << bitset<8>(spriteShift[spriteIndex][i]) << endl;
+        for (int j = 0; j < 8; j++) {
+            temp >>= 1;
+            temp |= ((spriteShift[spriteIndex][i]&0x80));
+            spriteShift[spriteIndex][i] <<= 1;
+        }
+        spriteShift[spriteIndex][i] = temp;
+        //cout << bitset<8>(spriteShift[spriteIndex][i]) << endl;
+        //cout << "filler" << endl;
+
+    }
+
 }

@@ -78,6 +78,7 @@ public:
     void loadShifters();
     void shiftShifters();
     void loadScanlineSprites(int16_t nextScanLine);
+    void flipHorizonally(uint8_t spriteIndex);
 
     //FOREGROUND
     //Stores information of up to 64 Sprites for 1 frame
@@ -89,7 +90,7 @@ public:
     //Sprite Latches which contain the attribute byte of up to 8 sprites
     uint8_t spriteAttribute[8];
     //Sprite counters, contain the x position of up to 8 sprites
-    int8_t spriteCounter[8];
+    int16_t spriteCounter[8];
     //Sprite counter for next scanline
     uint8_t spriteCount = 0;
 
