@@ -6,6 +6,7 @@
 #include <cstdint>
 #include "Bus.h"
 #include <functional>
+#include <bits/stdc++.h>
 
 class Bus;
 /**
@@ -76,18 +77,21 @@ public:
 
     void loadShifters();
     void shiftShifters();
+    void loadScanlineSprites(int16_t nextScanLine);
 
     //FOREGROUND
     //Stores information of up to 64 Sprites for 1 frame
-    uint8_t primaryOAM[256];
+    uint8_t primaryOAM[256] {};
     //Stores information of up to 8 Sprites of current Scanline
-    uint8_t secondaryOAM[32];
+    uint8_t secondaryOAM[32] {};
     //Sprite shift registers, 8 pairs, so 2 bytes for each sprite
     uint8_t spriteShift[8][2];
     //Sprite Latches which contain the attribute byte of up to 8 sprites
-    uint8_t spriteLatches[8];
+    uint8_t spriteAttribute[8];
     //Sprite counters, contain the x position of up to 8 sprites
-    uint8_t spriteCounter[8];
+    int8_t spriteCounter[8];
+    //Sprite counter for next scanline
+    uint8_t spriteCount = 0;
 
 
     //Multiplexer for determining the priority (Fore-/Background)
@@ -117,6 +121,9 @@ public:
     uint8_t nameTable[2][1024];
     uint8_t patternTable[2][4096];
     uint8_t paletteTable[32];
+    sf::Color backgroundPixel;
+    sf::Color spritePixel;
+
 
 
     //Variables for the Screen

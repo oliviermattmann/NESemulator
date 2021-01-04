@@ -28,6 +28,12 @@ public:
     PPU2C02 *ppu = nullptr;
     CPU6502 *cpu = nullptr;
 
+    bool dma = false;
+    bool idle = true;
+
+    uint8_t dmaData;
+    uint8_t dmaPage;
+    uint8_t dmaAddress;
 
 
     Bus();

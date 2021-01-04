@@ -180,10 +180,32 @@ void NESemulator::updateStatus() {
 }
 
 void NESemulator::clock() {
-    ppu->clock();
+
     if (masterClock%3 == 0) {
-        cpu->clock();
+        if(bus->dma) {
+            if(bus->idle) {
+                if (masterClock % 2 == 0) {
+                    bus->idle = false;
+                }
+            } else {
+                if (masterClock % 2 == 1) {
+                    bus->dmaData = bus->busRead((bus->dmaPage<<2) | bus->dmaAddress);
+                } else {
+                    ppu->primaryOAM[bus->dmaAddress] = bus->dmaData;
+                    bus->dmaAddress++;
+                    if (bus->dmaAddress == 0) {
+                        bus->dma = false;
+                        bus->idle = true;
+
+                    }
+                }
+            }
+        } else {
+            cpu->clock();
+        }
+
     }
+    ppu->clock();
     masterClock++;
 }
 

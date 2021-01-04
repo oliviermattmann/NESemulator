@@ -334,10 +334,12 @@ uint8_t PPU2C02::readCPU(uint16_t address)  {
 }
 
 void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
-    if (address == 0x4014) {
-       this->set_oam_dma(data);
+    if (address == 0x4014) {  // Todo What about this?
+        bus->dma = true;
+        bus->dmaPage = data;
+        bus->dmaAddress = 0x00;
     }
-    switch (address) {
+    switch (address&0x0007) {
         case 0x0000:
             this->set_ppu_ctrl(data);
             setNameTableID(data&0x03);
@@ -397,8 +399,6 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
             absLoopy += (get_ppu_ctrl(CTRL_MASK::INCR_MODE)? 32 : 1);
             //cout <<int (get_ppu_ctrl(CTRL_MASK::INCR_MODE)) << endl;
             break;
-        case 0x4014:  // Todo What about this?
-            this->set_oam_dma(data);
         default:
             break;
     }
@@ -446,12 +446,14 @@ void PPU2C02::clock() {
                     shiftShifters();
                 }
 
+
                 if (cycle == 256) {
                     incrementY();
                 }
 
                 if (cycle == 257) {
                     updateLoopyX();
+                    loadScanlineSprites(scanLine + 1);
                 }
 
                 if ((cycle > 279) || (cycle < 305)) {
@@ -500,12 +502,16 @@ void PPU2C02::clock() {
                         break;
                     case 5:
 
-                        patternFetchLsb = bus->cartridge.chrData[(256*16) + nameTableFetch*16 + getFineY()];
+                        patternFetchLsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT) > 0 ? 1:2) << 12)
+                                + ((uint16_t)nameTableFetch * 16)
+                                + getFineY() + 0);
                         if (patternFetchLsb != 0) {
                         }
                         break;
                     case 7:
-                        patternFetchMsb = bus->cartridge.chrData[(256*16) + nameTableFetch*16 + getFineY() + 8];
+                        patternFetchMsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT) > 0 ? 1:2) << 12)
+                                +((uint16_t)nameTableFetch * 16)
+                                + getFineY() + 8);
                         if (patternFetchMsb != 0) {
                         }
                         break;
@@ -517,20 +523,76 @@ void PPU2C02::clock() {
             if (cycle == 256) {
                 incrementY();
             }
-            if ((cycle > 0 && cycle < 257)) {// && ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
-                fineXMultiplexer = 0x8000 >> getFineX();
-                if (patternTableDataShift_bg_lsb != 0 || patternTableDataShift_bg_msb != 0) {
-                }
-                uint8_t lsbC = (((patternTableDataShift_bg_lsb & fineXMultiplexer) > 0) ? 1 : 0);
-                uint8_t msbC = (((patternTableDataShift_bg_msb & fineXMultiplexer) > 0) ? 1 : 0) << 1;
-                uint8_t bgPixelColorID = (msbC | lsbC);
-                uint8_t bgPaletteID = (((paletteAttributesShift_bg_msb & fineXMultiplexer) > 0) << 1) | (paletteAttributesShift_bg_lsb & fineXMultiplexer) > 0;
+            if ((cycle > 0 && cycle < 257) && ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
+                uint8_t spritePixelColorID = 0x00;
+                uint8_t spritePaletteID = 0x00;
+                uint8_t bgPixelColorID = 0x00;
+                uint8_t bgPaletteID = 0x00;
+                uint8_t finalPixelColorID = 0x00;
+                uint8_t finalPaletteID = 0x00;
+                bool spritePriority = false;
 
-                ppuScreen.setPixel(cycle - 1, scanLine, getColor(bgPaletteID, bgPixelColorID));
-                shiftShifters();
+                if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
+                    fineXMultiplexer = 0x8000 >> getFineX();
+                    if (patternTableDataShift_bg_lsb != 0 || patternTableDataShift_bg_msb != 0) {
+                    }
+                    uint8_t lsbC = (((patternTableDataShift_bg_lsb & fineXMultiplexer) > 0) ? 1 : 0);
+                    uint8_t msbC = (((patternTableDataShift_bg_msb & fineXMultiplexer) > 0) ? 1 : 0) << 1;
+                    bgPixelColorID = (msbC | lsbC);
+                    bgPaletteID = (((paletteAttributesShift_bg_msb & fineXMultiplexer) > 0) << 1) |
+                                          (paletteAttributesShift_bg_lsb & fineXMultiplexer) > 0;
+
+
+                    shiftShifters();
+                }
+                if (ppu_mask & MASK_MASK::SPRITE_ENABLE) {
+                   for (int i = 0; i < 8; i++) {
+                       //TODO Reset dont know what
+                       if (spriteCounter[i] < -7) {
+                           break;
+                       }
+                       //Have we hit the beginning of this sprite yet?
+                       if (spriteCounter[i] > 1) {
+                           //TODO Flip Vertical and Horizontal
+                           spritePixelColorID = (spriteShift[i][1] & 0x80 << 1) | (spriteShift[i][0] & 0x80);
+                           spritePaletteID = spriteAttribute[i]&0x03;
+                           spritePriority = spriteAttribute[i]&0x20;
+                           spriteShift[i][1] <<= 1;
+                           spriteShift[i][1] <<= 1;
+
+                           break;
+                       } else {
+                           spriteCounter[i]--;
+                       }
+                   }
+
+                }
+                if ((ppu_mask & MASK_MASK::SPRITE_ENABLE) || (ppu_mask & MASK_MASK::BACKGROUND_ENABLE)) {
+                    if (spritePixelColorID) {
+                        //sprite priority: true = behind background; false = in the front of the background
+                        if (!spritePriority) {
+                            finalPaletteID = spritePaletteID;
+                            finalPixelColorID = spritePixelColorID;
+                        } else {
+                            if (bgPixelColorID) {
+                                finalPixelColorID = bgPixelColorID;
+                                finalPaletteID = bgPaletteID;
+                            } else {
+                                finalPixelColorID = spritePixelColorID;
+                                finalPaletteID = spritePaletteID;
+                            }
+                        }
+
+                    } else {
+                        finalPixelColorID = bgPixelColorID;
+                        finalPaletteID = bgPaletteID;
+                    }
+                }
+                ppuScreen.setPixel(cycle - 1, scanLine, getColor(finalPaletteID, finalPixelColorID));
             }
             if (cycle == 257) {
                 updateLoopyX();
+                loadScanlineSprites(scanLine+1);
             }
             if (cycle == 337 || cycle == 339) {
                 nameTableFetch = readPPU(getTileAddress(absLoopy));
@@ -555,6 +617,7 @@ void PPU2C02::clock() {
                 renderState = VerticalBlank;
             }
 
+
             break;
 
         case VerticalBlank:
@@ -565,6 +628,7 @@ void PPU2C02::clock() {
                     nmiVblank();
                 }
             }
+
             if (scanLine < 261 && cycle < 340) {
                 cycle++;
             }
@@ -763,6 +827,57 @@ void PPU2C02::shiftShifters() {
 
         paletteAttributesShift_bg_lsb <<= 1;
         paletteAttributesShift_bg_msb <<= 1;
+    }
+}
+
+void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
+    //byte 0 y position of the top of sprite
+    //byte 1 Tile index number
+    //byte 2 Attributes
+    //byte 3 left x position of sprite
+    std::memset(spriteAttribute, 0, sizeof(spriteAttribute));
+    std::memset(spriteCounter, 0, sizeof(spriteCounter));
+    std::memset(spriteShift, 0xFF, sizeof(spriteShift));
+    spriteCount = 0;
+    uint8_t count = 0;
+    while(spriteCount < 9 && count < 64) {
+        //cout << int(primaryOAM[count*4]) << endl;
+        if (primaryOAM[count*4]<=(nextScanLine)) {
+            int16_t difference = (nextScanLine) - uint16_t(primaryOAM[count+4]);
+            if(get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT)) {
+                if (difference < 16) {
+                    if (spriteCount == 8) {
+                        set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, true);
+                        break;
+                    }
+                    std::copy(primaryOAM + (count * 4), primaryOAM + (count * 4 + 4),
+                              secondaryOAM + (spriteCount * 4));
+
+                    spriteAttribute[spriteCount] = primaryOAM[count * 4 + 2];
+                    spriteCounter[spriteCount] = primaryOAM[count * 4 + 3];
+
+                    spriteShift[0][spriteCount] = readPPU(((primaryOAM[count * 4 + 1]&0x01) << 12) + (primaryOAM[count * 4 + 1]&0xFE) + getFineY());
+                    spriteShift[1][spriteCount] = readPPU(((primaryOAM[count * 4 + 1]&0x01) << 12) + (primaryOAM[count * 4 +1]&0xFE) + getFineY() + 8);
+                    spriteCount++;
+                }
+            } else {
+                if (difference < 8) {
+                    if (spriteCount == 8) {
+                        set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, true);
+                        break;
+                    }
+                    std::copy(primaryOAM + (count * 4), primaryOAM + (count * 4 + 4),
+                              secondaryOAM + (spriteCount * 4));
+                    spriteAttribute[spriteCount] = primaryOAM[count * 4 + 2];
+                    spriteCounter[spriteCount] = primaryOAM[count * 4 + 3];
+                    spriteShift[0][spriteCount] = readPPU((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0) << 12 + primaryOAM[count * 4 + 1]*16 + getFineY());
+                    spriteShift[1][spriteCount] = readPPU((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0) << 12 + primaryOAM[count * 4 + 1]*16 + getFineY() + 8);
+                    spriteCount++;
+                }
+            }
+
+        }
+        count++;
     }
 }
 

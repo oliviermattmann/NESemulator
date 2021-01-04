@@ -42,7 +42,9 @@ void Bus::busWrite(uint16_t address, uint8_t data){
     } else if (address >= 0x4016 && address <= 0x4017) {
         controller_status = controller;
     } else if (address >= 0x2000 & address <= 0x3FFF) {
-        ppu->writeCPU(address & 0x0007, data);
+        ppu->writeCPU(address, data);
+    } else if (address == 0x4014) {
+        ppu->writeCPU(address, data);
     }
 
 }
