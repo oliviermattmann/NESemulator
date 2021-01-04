@@ -27,6 +27,7 @@ public:
 
     sf::RenderWindow window;
     sf::Text cpuStatus[8];
+    sf::Text controllerInfo[8];
     sf::Font myFont;
     Screen mainScreen;
     Screen patternScreens[2];
@@ -41,6 +42,7 @@ public:
     void run();
     void initStatus();
     void updateStatus();
+    void initControllerInfo();
     void clock();
     void drawPatternTable(int number);
 

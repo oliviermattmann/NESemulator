@@ -18,6 +18,7 @@ NESemulator::NESemulator() //:
     ppu->setNMI([&](){cpu->NMI();});
 
     initStatus();
+    initControllerInfo();
 }
 NESemulator::~NESemulator() {
 
@@ -132,6 +133,7 @@ void NESemulator::run() {
             //ppu->drawToScreen();
             for (int i = 0; i < 8; i++) {
                 window.draw(cpuStatus[i]);
+                window.draw(controllerInfo[i]);
             }
 
 
@@ -146,7 +148,7 @@ void NESemulator::run() {
 }
 void NESemulator::initStatus() {
     if(!myFont.loadFromFile("../external/Fonts/ARIAL.TTF")) {
-        std::cout << "fuck" << std::endl;
+        cout << "Error loading font in NESemulator.cpp!" << endl;
     }
     for (int i = 0; i < 8; i++) {
         cpuStatus[i].setFont(myFont);
@@ -168,6 +170,22 @@ void NESemulator::initStatus() {
     cpuStatus[5].setString("U");
     cpuStatus[6].setString("V");
     cpuStatus[7].setString("N");
+}
+//always initStatus first
+void NESemulator::initControllerInfo() {
+    for (int i = 0; i < 5; i++) {
+        controllerInfo[i].setFont(myFont);
+        controllerInfo[i].setPosition(50,  650 + i*35);
+        controllerInfo[i].setCharacterSize(30);
+        controllerInfo[i].setStyle(sf::Text::Bold);
+        controllerInfo[i].setFillColor(sf::Color::White);
+    }
+    controllerInfo[0].setString("Y: A Button (jump in DK)");
+    controllerInfo[1].setString("X: B Button (no use found yet)");
+    controllerInfo[2].setString("A: Select (confirms selection in Menu also pauses the game)");
+    controllerInfo[3].setString("S: Start (change selection in Menu)");
+    controllerInfo[4].setString("Arrow Keys: Movement");
+
 }
 void NESemulator::updateStatus() {
     for (int i = 0; i < 8; i++) {
