@@ -566,8 +566,10 @@ void PPU2C02::clock() {
                            spriteShift[i][0] <<= 1;
                            spriteShift[i][1] <<= 1;
                            spriteCounter[i]--;
-                           pixelSet = true;
-                           //cout << "sprite " << i << ", counter : " << int(spriteCounter[i]) << endl;
+                           if (spritePixelColorID != 0) {
+                               pixelSet = true;
+                           }
+
 
                        } else {
                            spriteShift[i][0] <<= 1;
@@ -835,11 +837,8 @@ void PPU2C02::loadShifters() {
 void PPU2C02::shiftShifters() {
     if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
 
-
         patternTableDataShift_bg_lsb <<= 1;
         patternTableDataShift_bg_msb <<= 1;
-
-
 
         paletteAttributesShift_bg_lsb <<= 1;
         paletteAttributesShift_bg_msb <<= 1;
@@ -877,48 +876,44 @@ void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
                 //check bit 7 and 6 to determine if the sprite needs to be flipped
                 bool verticalFlip = ((spriteAttribute[spriteCount] & 0x80) > 0);
                 bool horizontalFlip = ((spriteAttribute[spriteCount] & 0x40) > 0);
+                //check if sprite is 8x16 or 8x8
                 if (get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT)) {
+                    //sprite is 8x16
+                    //is is vertically flipped?
                     if (verticalFlip) {
-                        if (difference < 8) {
+                            //YES!
+                            //How the address is calculated:
+                            //bit zero of the Tile index byte (secondary[sprite*4+1]) determines the which patterntable to use
+                            //Bit 1 to 7 determines the actual Index in the pattern table, multiply by 16 because each Tile
+                            //has 16 bytes of information
+                            //difference determines the offset into the sprite/Tile, so to get the flipped offset we take the row
+                            //(15-difference) (the address range of both tiles is contiguous)
                             spriteShift[spriteCount][0] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
                                                                           ((secondaryOAM[spriteCount * 4 + 1] & 0xFE)) * 16 +
-                                                                  (7 - difference));
+                                                                  (15 - difference));
                             spriteShift[spriteCount][1] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
                                                                   ((secondaryOAM[spriteCount * 4 + 1] & 0xFE)) * 16 +
-                                                                  (7 - difference) + 8);
-                        } else {
-                            spriteShift[spriteCount][0] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
-                                                                  ((secondaryOAM[spriteCount * 4 + 1] & 0xFE) + 1) * 16 +
-                                                                  (7 - difference));
-                            spriteShift[spriteCount][1] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
-                                                                          ((secondaryOAM[spriteCount * 4 + 1] & 0xFE) + 1) * 16 +
-                                                                  (7 - difference) + 8);
-
-                        }
+                                                                  (15 - difference) + 8);
                     } else {
-                        if (difference < 8) {
+                            //same as with vertical flipping, but the offset is the difference
                             spriteShift[spriteCount][0] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
                                                                   (secondaryOAM[spriteCount * 4 + 1] & 0xFE) * 16 +
                                                                   difference);
                             spriteShift[spriteCount][1] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
                                                                   (secondaryOAM[spriteCount * 4 + 1] & 0xFE) * 16 +
                                                                   difference + 8);
-
-                        } else {
-                            spriteShift[spriteCount][0] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
-                                                                  ((secondaryOAM[spriteCount * 4 + 1] & 0xFE)+1) * 16 +
-                                                                  difference);
-                            spriteShift[spriteCount][1] = readPPU(((secondaryOAM[spriteCount * 4 + 1] & 0x01) << 12) +
-                                                                          ((secondaryOAM[spriteCount * 4 + 1] & 0xFE)+1) * 16 +
-                                                                  difference + 8);
-
-                        }
-
 
                     }
                 } else {
+                    //Sprite is 8x8
+                    //is is vertically flipped?
                     if (verticalFlip) {
-
+                        //YES!
+                        //How the address is calculated:
+                        //Sprite Tile select bit in the Control register determines which pattern table to use
+                        //The Tile Index byte of the sprite determines the Index into the pattern table which is multiplied by 16
+                        //because each tile is 16 bytes
+                        //the row offset difference is then flipped (7 - difference) to get the correct row
                         spriteShift[spriteCount][0] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1 : 0) << 12) +
                                                               secondaryOAM[spriteCount * 4 + 1] * 16 +
                                                               (7 - difference));
@@ -926,6 +921,8 @@ void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
                                                               secondaryOAM[spriteCount * 4 + 1] * 16 +
                                                               (7 - difference) + 8);
                     } else {
+                        //No vertical flip
+                        //Address same as above but the difference determines the correct row
                         spriteShift[spriteCount][0] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1 : 0) << 12) +
                                                               secondaryOAM[spriteCount * 4 + 1] * 16 + difference);
                         spriteShift[spriteCount][1] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1 : 0) << 12) +
@@ -939,25 +936,6 @@ void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
 
                 spriteCount++;
             }
-            /* } else {
-                 if (difference < 8) {
-                     if (spriteCount == 8) {
-                         set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, true);
-                         break;
-                     }
-                     std::memcpy(secondaryOAM+sizeof(uint8_t)*4*spriteCount, primaryOAM + sizeof(uint8_t)*4*count, sizeof(uint8_t)*4);
-                     spriteAttribute[spriteCount] = primaryOAM[count * 4 + 2];
-                     spriteCounter[spriteCount] = primaryOAM[count * 4 + 3];
-
-                     //cout << int(spriteCounter[spriteCount]) << endl;
-                     spriteShift[spriteCount][0] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1:0) << 12) + secondaryOAM[spriteCount * 4 + 1]*16 + difference);
-                     spriteShift[spriteCount][1] = readPPU(((get_ppu_ctrl(CTRL_MASK::ST_SELECT) > 0 ? 1:0) << 12) + secondaryOAM[spriteCount * 4 + 1]*16 + difference + 8);
-                     spriteCount++;
-                 }
-             }
-
-         }*/
-
         }
         count++;
     }
@@ -989,19 +967,14 @@ void PPU2C02::updateLoopyY() {
 }
 
 void PPU2C02::flipHorizonally(uint8_t spriteIndex) {
-
     for (int i = 0; i < 2; i++) {
         uint8_t temp = 0x00;
-        //cout << bitset<8>(spriteShift[spriteIndex][i]) << endl;
         for (int j = 0; j < 8; j++) {
             temp >>= 1;
             temp |= ((spriteShift[spriteIndex][i]&0x80));
             spriteShift[spriteIndex][i] <<= 1;
         }
         spriteShift[spriteIndex][i] = temp;
-        //cout << bitset<8>(spriteShift[spriteIndex][i]) << endl;
-        //cout << "filler" << endl;
-
     }
 
 }
