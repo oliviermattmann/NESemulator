@@ -25,7 +25,7 @@ void NESemulator::run() {
     //Initialize the different screens
     window.create(sf::VideoMode(1024, 960), "NES Emulator",
                   sf::Style::Titlebar | sf::Style::Close);
-    mainScreen.init(256, 240, 2.5, 50, 50, sf::Color::Cyan);
+    mainScreen.init(256, 240, 2.5, 50, 50, sf::Color::Black);
     patternScreens[0].init(128, 128, 2, 750 ,100, sf::Color::White);
     patternScreens[1].init(128, 128, 2, 750, 400, sf::Color::Green);
 
