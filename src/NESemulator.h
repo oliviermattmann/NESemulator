@@ -15,7 +15,6 @@
 #include "Bus.h"
 #include "Cartridge.h"
 
-
 class NESemulator {
 public:
     Cartridge* cartridge;
@@ -32,9 +31,6 @@ public:
     Screen mainScreen;
     Screen patternScreens[2];
 
-    bool instructionStep = false;
-    bool frameStep = false;
-
     //Constructor/Destructor
     NESemulator();
     ~NESemulator();
@@ -46,8 +42,5 @@ public:
     void clock();
     void drawPatternTable(int number);
 
-
 };
-
-
 #endif //NESEMULATOR_NESEMULATOR_H
