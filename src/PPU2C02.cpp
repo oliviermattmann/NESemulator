@@ -6,9 +6,9 @@
 PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
     ppuScreen(screenRef)
 {
+    //establish a connection to the bus and vice versa
     bus = busRef;
     bus->ppu = this;
-    // Todo Init Code, Bus ect...
 
     // Set IRQ Ignore bit
     /*
@@ -21,12 +21,8 @@ PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
     for (uint8_t & text : this->nameTable[1]) {
         text = 0x00;
     }
-    for (uint8_t & text : this->SPR_RAM) {
-        text = 0x00;
-    }
+
     renderState = PreRender;
-    // Buffer
-    this->reset_buff();
     // disable PPU2C02 NMI and rendering
     this->set_ppu_ctrl(NMI_ENABLE, false);
     this->set_ppu_mask(SPRITE_ENABLE, false);
@@ -48,6 +44,9 @@ void PPU2C02::setNMI(std::function<void()> nmi) {
     nmiVblank = nmi;
 }
 
+/*
+ * GET AND SET METHODS FOR REGISTERS
+ */
 void PPU2C02::set_ppu_ctrl(CTRL_MASK b, bool status) {
     if (status) {
         this->ppu_ctrl |= b;
@@ -55,9 +54,6 @@ void PPU2C02::set_ppu_ctrl(CTRL_MASK b, bool status) {
         this->ppu_ctrl &= ~b;
     }
 }
-/*
- * GET AND SET METHODS
- */
 
 
 bool PPU2C02::get_ppu_ctrl(CTRL_MASK b) const {
@@ -68,9 +64,6 @@ void PPU2C02::set_ppu_ctrl(uint8_t val) {
     this->ppu_ctrl = val;
 }
 
-uint8_t PPU2C02::get_ppu_ctrl() const {
-    return this->ppu_ctrl;
-}
 
 // Mask Register
 
@@ -117,106 +110,25 @@ uint8_t PPU2C02::get_ppu_stat() const {
     return this->ppu_stat;
 };
 
-// oam address register
-
-void PPU2C02::set_oam_addr(uint8_t val) {
-    this->oam_addr = val;
-}
-
-uint8_t PPU2C02::get_oam_addr() const {
-    return this->oam_addr;
-}
-
-// oam data register
-
-void PPU2C02::set_oam_data(uint8_t val) {
-    this->oam_data = val;
-}
-
-uint8_t PPU2C02::get_oam_data() const {
-    return this->oam_data;
-}
-
-// ppu scroll register
-
-void PPU2C02::set_ppu_scro(uint8_t val) {
-    this->ppu_scro = val;
-}
-
-uint8_t PPU2C02::get_ppu_scro() const {
-    return this->ppu_scro;
-}
-
-// ppu address register
-
-void PPU2C02::set_ppu_addr(uint8_t val) {
-    this->ppu_addr = val;
-}
-
-uint8_t PPU2C02::get_ppu_addr() const {
-    return this->ppu_addr;
-}
-
-// ppu data register
-
-void PPU2C02::set_ppu_data(uint8_t val) {
-    this->ppu_data = val;
-    // After write increment address
-    if(this->get_ppu_ctrl() & INCR_MODE) {
-        this->ppu_addr += 1;
-    } else {
-        this->ppu_addr += 32;
-    }
-}
-
-uint8_t PPU2C02::get_ppu_data() const {
-    return this->ppu_data;
-}
-
-// oam dma register
-
-void PPU2C02::set_oam_dma(uint8_t val) {
-    this->ppu_addr = val;
-}
-
-uint8_t PPU2C02::get_oam_dma() const {
-    return this->ppu_addr;
-}
-
-/* Read and Write Operations */
-
-/*
-uint8_t PPU2C02::readPPU(uint8_t address) {
- To  distinguish color palettes here
-    if (this->valid_read) { //if read twice
-        this->valid_read = 0;
-        //combine buffered addresses to u16int and wrap around from $4000-$FFFF
-        return this->VRAM[((address << 8) | (this->vram_buffer_r & 0xFF)) % 0x3FFF];
-    } else {
-        this->valid_read = 1;
-        //buffer address
-        this->vram_buffer_r = address;
-        return 0x0; //invalid
-    }*/
+/* Read and Write Operations inside the ppu */
 
 uint8_t PPU2C02::readPPU(uint16_t address) {
     address = address & 0x3FFF;
-    uint8_t temp = 0x00;
+    uint8_t dataOut = 0x00;
     if (address < 0x2000) {
-        //cout << int(address) << endl;
-        //cout << int((address & 0x1000) >> 12) << endl;
-        temp = bus->cartridge.chrData[address];//patternTable[(address & 0x1000) >> 12][(address & 0x0FFF)];
-        temp = temp;
+
+        dataOut = bus->cartridge.chrData[address];
     } else if (address <= 0x3EFF) {
         address = (address & 0x0FFF);
+        //determine in what nametable to look for (scrolling)
         if (address >= 0x0000 && address <= 0x03FF)
-            temp = nameTable[0][address & 0x03FF];
+            dataOut = nameTable[0][address & 0x03FF];
         if (address >= 0x0400 && address <= 0x07FF)
-            temp = nameTable[0][address & 0x03FF];
+            dataOut = nameTable[0][address & 0x03FF];
         if (address >= 0x0800 && address <= 0x0BFF)
-            temp = nameTable[1][address & 0x03FF];
+            dataOut = nameTable[1][address & 0x03FF];
         if (address >= 0x0C00 && address <= 0x0FFF)
-            temp = nameTable[1][address & 0x03FF];
+            dataOut = nameTable[1][address & 0x03FF];
     } else if (address >= 0x3F00 && address <= 0x3FFF) {
         address &= 0x001F;
         if (address == 0x0010) {
@@ -231,12 +143,11 @@ uint8_t PPU2C02::readPPU(uint16_t address) {
         if (address == 0x001C) {
             address = 0x000C;
         }
-        temp = paletteTable[address];
+        dataOut = paletteTable[address];
     }
 
-    return temp;
+    return dataOut;
 }
-
 
 void PPU2C02::writePPU(uint16_t address, uint8_t data) {
     address = address & 0x3FFF;
@@ -270,134 +181,117 @@ void PPU2C02::writePPU(uint16_t address, uint8_t data) {
     }
 }
 
-void PPU2C02::reset_buff() {
-    this->vram_buffer_d = 0;
-    this->vram_buffer_r = 0;
-    this->vram_buffer_w = 0;
-    this->valid_write = 0;
-    this->valid_write = 0;
-}
-
 
 uint8_t PPU2C02::readCPU(uint16_t address)  {
     uint8_t dataOut = 0x00;
-    if (address == 0x4014) {
-        dataOut = get_oam_dma();
-    }
     switch (address & 0x0007) {
-        //control
+        //Control
         case 0x0000:
-            //dataOut = get_ppu_ctrl();
+            //not readable
             break;
         //Mask
         case 0x0001:
-            //dataOut = get_ppu_mask();
+            //not readable
             break;
         //Status
         case 0x0002:
-            dataOut = get_ppu_stat() & 0xE0 | (dataBuffer&0x1F);
+            //only 3 most significant bits are relevant
+            dataOut = get_ppu_stat() & 0xE0;
+            //reading from this register sets VBlank to false
             set_ppu_stat(STAT_MASK::VBLANK, false);
+            //also resets the write latch
             writeToggle = false;
             break;
         //OAM Address
         case 0x0003:
-            //dataOut = get_oam_addr();
+            //OAM is handled with dma, so this register is unused
             break;
         //OAM Data
         case 0x0004:
-            dataOut = get_oam_data();
+            //OAM is handled with dma, so this register is unused
             break;
         //Scroll
         case 0x0005:
-            //dataOut = get_ppu_scro();
+            //only written to
             break;
         //PPU Address
         case 0x0006:
-            //dataOut = get_ppu_addr();
+           //only written to
             break;
         //PPU Data
         case 0x0007:
+            //when the cpu reads data from the ppu it is delayed by one read; the first read is discarded
+            //an exception is made when reading reading from palette memory
             dataOut = dataBuffer;
             dataBuffer = readPPU(absLoopy);
             if (absLoopy >= 0x3F00) {
                 dataOut = dataBuffer;
             }
-
             absLoopy += (get_ppu_ctrl(CTRL_MASK::INCR_MODE)? 32 : 1);
-            break;
-        //DMA, not used yet
-        case 0x4014: // Todo What about this?
-            dataOut = get_oam_dma();
             break;
     }
     return dataOut;
 }
 
 void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
-    if (address == 0x4014) {  // Todo What about this?
+    if (address == 0x4014) {
         bus->dma = true;
         bus->dmaPage = data;
         bus->dmaAddress = 0x00;
     }
-    switch (address&0x0007) {
+    switch (address & 0x0007) {
         case 0x0000:
+            //set the control register to the data
             this->set_ppu_ctrl(data);
-            setNameTableID(data&0x03);
+            //the loopy registers is updated with new nametableID for x and y
+            setNameTableID(data & 0x03);
             break;
         case 0x0001:
             this->set_ppu_mask(data);
             break;
         case 0x0002:
-            cout << "PPU reg 0x2002 is read only.";
-            cout << hex << int(bus->cpu->op_code) << endl;
-            //this->set_ppu_stat(data);
+            //status register is only readable
             break;
         case 0x0003:
-            this->set_oam_addr(data);
+            //OAM is handled with dma, so this register is unused
             break;
         case 0x0004:
-            this->set_oam_data(data);
+            //OAM is handled with dma, so this register is unused
             break;
+        //Scroll register
         case 0x0005:
             if (!writeToggle) {
-                if (data != 0) {
-                    cout << "problem" << endl;
-                }
-                //this->set_ppu_scro(data);
+                //with the latch on false the X components of the tempLoopy registers are updated (scroll register not used)
                 setCoarseX(data >> 3);
                 setFineX(data & 0x07);
                 writeToggle = true;
             } else {
-                if (data != 0) {
-                    cout << "problem" << endl;
-                }
-                //this->set_ppu_scro(data);
+                // with the latch on true the Y components of the tempLoopy register are updated (scroll register not used)
                 setCoarseY(data >> 3);
                 setFineY(data & 0x07);
                 writeToggle = false;
             }
             break;
         case 0x0006:
-            //cout << ((get_ppu_stat(STAT_MASK::VBLANK) > 0) ? 1:0) << endl;
             if (!writeToggle) {
-                //tempLoopy = (uint16_t)((data&0x3F)<<8) | (tempLoopy & 0x00FF);
+                //specific Byte of the data go to different parts in the tempLoopy register
                 setFineY(((data & 0x30) >> 4)&0x03);
                 setNameTableID(((data & 0x0C) >> 2)&0x03);
                 setCoarseYHi(data & 0x03);
                 writeToggle = true;
             } else {
-               //setCoarseYLow((data & 0xE0) >> 5);
-               //setCoarseX(data & 0x1F);
-               tempLoopy = (tempLoopy & 0xFF00) | data;
-
+                //the rest of the tempLoopy register is updated on the second write
+               setCoarseYLow((data & 0xE0) >> 5);
+               setCoarseX(data & 0x1F);
+               //absLoopy is set to tempLoopy
                absLoopy = tempLoopy;
                writeToggle = false;
             }
             break;
         case 0x0007:
+            //absLoopy keeps track where to write to
             this->writePPU(absLoopy, data);
             absLoopy += (get_ppu_ctrl(CTRL_MASK::INCR_MODE)? 32 : 1);
-            //cout <<int (get_ppu_ctrl(CTRL_MASK::INCR_MODE)) << endl;
             break;
         default:
             break;
@@ -405,7 +299,7 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
 }
 void PPU2C02::clock() {
 
-
+    //for details see diagram:
     switch (renderState) {
         case PreRender:
             if ((scanLine == -1) && cycle == 1) {
@@ -416,36 +310,9 @@ void PPU2C02::clock() {
             }
             if ((scanLine == -1) && cycle > 1) {
                 if (cycle < 256 || (cycle > 320 && cycle < 337)) {
-                    switch (cycle % 8) {
-                        case 0:
-                            incrementCoarseX();
-                            loadShifters();
-                            break;
-                        case 1:
-                            nameTableFetch = readPPU(getTileAddress(absLoopy));
-                            break;
-                        case 3:
-                            attributeFetch = readPPU(getAttributeAddress(absLoopy));
-                            //the Attribute Fetch variable need to be adjusted to the section the tile is in
-                            if ((getCoarseX() & 0x02) && (getCoarseY() & 0x02)) {
-                                attributeFetch >>= 6;
-                            } else if (!(getCoarseX() & 0x02) && (getCoarseY() & 0x02)) {
-                                attributeFetch >>= 4;
-                            } else if ((getCoarseX() & 0x02) && !(getCoarseY() & 0x02)) {
-                                attributeFetch >>= 2;
-                            }
-                            attributeFetch &= 0x03;
-                            break;
-                        case 5:
-                            patternFetchLsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT)>>5) << 12)+ nameTableFetch*16 + getFineY() + 0);
-                            break;
-                        case 7:
-                            patternFetchMsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT)>>5) << 12)+ nameTableFetch*16 + getFineY() + 8);
-                            break;
-                    }
-                    shiftShifters();
+                    fetchPipeline();
+                    if (cycle != 336) shiftShifters();
                 }
-
 
                 if (cycle == 256) {
                     incrementY();
@@ -476,54 +343,20 @@ void PPU2C02::clock() {
         case Render:
             if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE || ppu_mask & MASK_MASK::SPRITE_ENABLE) {
             }
-            if (cycle == 0) {
-
+            //1 cycle is skipped
+            if (cycle == 0 && scanLine == 1 && odd) {
+                cycle = 1;
             }
             if ((cycle > 0 && cycle < 256) || (cycle > 320 && cycle < 337)) {
-                switch (cycle % 8) {
-                    case 0:
-                        incrementCoarseX();
-                        loadShifters();
-                        break;
-                    case 1:
-                        nameTableFetch = readPPU(getTileAddress(absLoopy));
-                        break;
-                    case 3:
-                        attributeFetch = readPPU(getAttributeAddress(absLoopy));
-                        //the Attribute Fetch variable need to be adjusted to the section the tile is in
-                        if ((getCoarseX() & 0x02) && (getCoarseY() & 0x02)) {
-                            attributeFetch >>= 6;
-                        } else if (!(getCoarseX() & 0x02) && (getCoarseY() & 0x02)) {
-                            attributeFetch >>= 4;
-                        } else if ((getCoarseX() & 0x02) && !(getCoarseY() & 0x02)) {
-                            attributeFetch >>= 2;
-                        }
-                        attributeFetch &= 0x03;
-                        break;
-                    case 5:
-
-                        patternFetchLsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT) > 0 ? 1:2) << 12)
-                                + ((uint16_t)nameTableFetch * 16)
-                                + getFineY() + 0);
-                        if (patternFetchLsb != 0) {
-                        }
-                        break;
-                    case 7:
-                        patternFetchMsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT) > 0 ? 1:2) << 12)
-                                +((uint16_t)nameTableFetch * 16)
-                                + getFineY() + 8);
-                        if (patternFetchMsb != 0) {
-                        }
-                        break;
-                }
-                if ((cycle > 320 && cycle < 337)) {
+                fetchPipeline();
+                if ((cycle > 320 && cycle < 336)) {
                     shiftShifters();
                 }
             }
             if (cycle == 256) {
                 incrementY();
             }
-            if ((cycle > 0 && cycle < 257) && ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
+            if ((cycle >= 0 && cycle < 257) && ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
                 uint8_t spritePixelColorID = 0x00;
                 uint8_t spritePaletteID = 0x00;
                 uint8_t bgPixelColorID = 0x00;
@@ -553,13 +386,14 @@ void PPU2C02::clock() {
                        if (spriteCounter[i] < -7) {
                            //do nothing
                        } else if (spriteCounter[i] > 0) { //Have we hit the beginning of this sprite yet?
-
-
-                           //TODO Flip Vertical and Horizontal
-                           //cout << "sprite " << i << ", counter : " << int(spriteCounter[i]) << endl;
                            spriteCounter[i]--;
 
                        } else if (!pixelSet){
+                           if (secondaryOAM[i*4]< 220 && secondaryOAM[i*4] > 199) {
+                               pixelSet = false;
+                               pixelSet = pixelSet;
+                           }
+
                            spritePixelColorID = (((spriteShift[i][1] & 0x80) > 0 ? 1:0) << 1) | (((spriteShift[i][0] & 0x80) > 0 ? 1:0));
                            spritePaletteID = spriteAttribute[i]&0x03;
                            spritePriority = spriteAttribute[i]&0x10;
@@ -575,7 +409,6 @@ void PPU2C02::clock() {
                            spriteShift[i][0] <<= 1;
                            spriteShift[i][1] <<= 1;
                            spriteCounter[i]--;
-                           //cout << "sprite " << i << ", counter : " << int(spriteCounter[i]) << endl;
                        }
                    }
 
@@ -601,7 +434,7 @@ void PPU2C02::clock() {
                         finalPaletteID = bgPaletteID;
                     }
                 }
-                ppuScreen.setPixel(cycle - 1, scanLine, getColor(finalPaletteID, finalPixelColorID));
+                ppuScreen.setPixel(cycle , scanLine, getColor(finalPaletteID, finalPixelColorID));
             }
             if (cycle == 257) {
                 updateLoopyX();
@@ -664,29 +497,71 @@ void PPU2C02::clock() {
 
     }
 }
+void PPU2C02::fetchPipeline() {
+    switch (cycle % 8) {
+        case 0:
+            //on every 8th cycle (cycle 0 excluded) the CoarseX segment of the absLoopy register is incremented
+            //additionally the shifters for the Background are loaded for the tile after the one that just started
+            incrementCoarseX();
+            loadShifters();
+            break;
+        case 1:
+            //the Tile index is fetched from the nametable
+            nameTableFetch = readPPU(getTileAddress(absLoopy));
+            break;
+        case 3:
+            //the Attribute byte of Tile is fetched from the nametable aswell
+            attributeFetch = readPPU(getAttributeAddress(absLoopy));
+            //the Attribute Fetch variable need to be adjusted to the section the tile is in
+            //the Nametable is seperated into 8x8 Blocks, each one of these blocks have an attribute byte saved
+            //in the end of the nametable. Each of these blocks are seperated into 4 sections, these sections are
+            //4x4 Tiles. Each sections palette is determined by 2 bits.
+            /*
+             * o----o----o      Represents a block
+             * | 0  o 1  |      The bits in the attribute byte are set like this:
+             * o----o----o      3322 1100
+             * | 2  | 3  |
+             * o----o----o
+             */
+            if ((getCoarseX() & 0x02) && (getCoarseY() & 0x02)) {
+                //section 3
+                attributeFetch >>= 6;
+            } else if (!(getCoarseX() & 0x02) && (getCoarseY() & 0x02)) {
+                //section 2
+                attributeFetch >>= 4;
+            } else if ((getCoarseX() & 0x02) && !(getCoarseY() & 0x02)) {
+                //section 1
+                attributeFetch >>= 2;
+            }
+            //section 0 can just be masked
+            attributeFetch &= 0x03;
+            break;
+        case 5:
+            //Fetch of the least significant bits. The address in structured in the following way:
+            //Background Tile Select Bit in the control register selects the pattern Table (0 or 1) and is shifted
+            //to the correct position in the address. The previously fetched Tile Index is multiplied by 16 (each Tile is
+            // 16 bytes of information) and added to the address, finally fineY is the row offset so get the correct byte
 
-/*
- * Updates the patternTileRowVar variable for 8 pixels in 1 row
- */
-void PPU2C02::updatePatternTileRowVar(uint16_t index) {
-    //index *= 16;
-    patternTableRow[0] = bus->cartridge.chrData[index];// + (scanLine & 0x07)];
-    patternTableRow[1] = bus->cartridge.chrData[index+8];// + (scanLine & 0x07)+8];
+            patternFetchLsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT) > 0 ? 1:0) << 12)
+                                      + ((uint16_t)nameTableFetch * 16)
+                                      + getFineY());
+            break;
+        case 7:
+            //same as above but 8 is added to the address because the pattern bytes come in pairs and the first 8 bytes
+            // are the lsb bytes and the second 8 bytes of the Tile are the msb bytes
+            patternFetchMsb = readPPU(((get_ppu_ctrl(CTRL_MASK::BT_SELECT) > 0 ? 1:0) << 12)
+                                      +((uint16_t)nameTableFetch * 16)
+                                      + getFineY() + 8);
+
+            break;
+    }
 }
 
-uint8_t PPU2C02::getPaletteID(uint16_t xInd, uint16_t yInd) {
-    //get the right attribute byte in the nametable by determining the right Block
-    uint8_t paletteByte = nameTable[0][960 + (yInd/32)*8 + (xInd/32)];
-    //each block is divided into 2x2 tile sections, the section is determined by the x and y coordinate of the pixel
-    uint8_t sectionID = ((((xInd & 0x1f)) > 15) ? 1 : 0) | ((((yInd & 0x1f) > 15) ? 1 : 0) << 1);
-    return ((paletteByte >> (sectionID * 2)) & 0x03);
-}
 
-uint8_t PPU2C02::getColorID(uint8_t xOffset) {
-    uint8_t lsbColor = ((patternTableRow[0] >> (7 - xOffset)) & 0x01);
-    uint8_t msbColor = ((patternTableRow[1] >> (7 - xOffset)) & 0x01);
-    return (msbColor << 1) | lsbColor;
-}
+
+
+
+
 
 sf::Color PPU2C02::getColor(uint8_t palette, uint8_t colorIndex) {
     return colors[readPPU(0x3F00 + (palette << 2) + colorIndex) & 0x3F];
@@ -746,6 +621,7 @@ void PPU2C02::setCoarseY(uint16_t value) {
 uint8_t PPU2C02::getCoarseY() {
     return (absLoopy & 0x03E0) >> 5;
 }
+
 void PPU2C02::setNameTableID(uint8_t value) {
     tempLoopy &= (~0x0C00);
     tempLoopy |= (value << 10);
@@ -787,7 +663,7 @@ void PPU2C02::incrementCoarseX() {
 void PPU2C02::incrementY() {
     if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
         if ((absLoopy & 0x7000) != 0x7000) {
-            int8_t fineY = getFineY();
+
             absLoopy += 0x1000;
         } else {
             absLoopy &= (~0x7000);
@@ -813,7 +689,6 @@ uint16_t  PPU2C02::getTileAddress(uint16_t loopy) {
 
 uint16_t PPU2C02::getAttributeAddress(uint16_t loopy) {
     return 0x23C0 | (loopy & 0x0C00) | (loopy >> 4) & 0x38 | ((loopy >> 2) & 0x07);
-
 }
 
 /*
@@ -829,7 +704,7 @@ void PPU2C02::loadShifters() {
     //each letter pair represents 1 of 4 Sections in the Attribute byte, which section the tile is in
     //is determined by coarseX and coarseY and the attributeFetch variable is set accordingly, eg:
     //tile is in section B so attributeFetch = 0b000000Bb, this is then inflated to 8 bits, because the palette given
-    //by the section applies to all pixels in a tile
+    //by the section applies to all pixels in a section
     paletteAttributesShift_bg_lsb |= ((attributeFetch & 0b01) ? 0xFF : 0x00);
     paletteAttributesShift_bg_msb |= ((attributeFetch & 0b10) ? 0xFF : 0x00);
 }

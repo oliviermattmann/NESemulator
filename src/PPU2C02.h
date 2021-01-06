@@ -33,8 +33,8 @@ public:
     uint16_t absLoopy = 0x0000;
     uint8_t fineX = 0x00;
     bool writeToggle;
-    //loopy Helper Functions
 
+    //loopy Helper Functions
     void setCoarseX(uint8_t value);
     uint8_t getCoarseX();
     void setCoarseYHi(uint8_t value);
@@ -95,21 +95,17 @@ public:
     uint8_t spriteCount = 0;
 
 
-    //Multiplexer for determining the priority (Fore-/Background)
-    bool priorityMultiplexer(uint8_t backgroundColorID, uint8_t spritePixel, bool priority);
+    //Multiplexer Mask used for fineX scrolling
     uint16_t fineXMultiplexer;
 
 
 
     uint8_t dataBuffer = 0x00;
-    uint16_t ppuAddress = 0x0000;
-    uint16_t tempAddress = 0x0000;
-    bool addrLatch = false;
 
-    uint8_t patternTableRow[2];
 
     int16_t scanLine = -1;
     uint16_t cycle = 0;
+    bool odd = false;
 
     enum State {
         PreRender,
@@ -118,12 +114,12 @@ public:
         VerticalBlank
     } renderState;
 
+    void fetchPipeline();
+
 
     uint8_t nameTable[2][1024];
     uint8_t patternTable[2][4096];
     uint8_t paletteTable[32];
-    sf::Color backgroundPixel;
-    sf::Color spritePixel;
 
 
 
@@ -146,19 +142,7 @@ public:
 
 
 
-    uint8_t vram_buffer_r;
-    uint8_t vram_buffer_d;
-    uint8_t vram_buffer_w;
 
-    int valid_read;
-    int valid_write;
-
-    /**
-     * Resets Buffer values.
-     */
-    void reset_buff();
-
-    uint8_t SPR_RAM[256];
 
     /**
      * Contains a color in rgb code.
@@ -256,7 +240,7 @@ public:
     uint8_t ppu_ctrl;   // Control Register
     uint8_t ppu_mask;   // Mask Register
     uint8_t ppu_stat;   // Status Register
-    uint8_t ppu_scro = 0x00;   // Fine Scroll Register
+    uint8_t ppu_scro;   // Fine Scroll Register
     uint8_t ppu_addr;   // Address Register
     uint8_t ppu_data;   // Data Register
     uint8_t oam_addr;   // Address Register, OAM
@@ -299,8 +283,6 @@ public:
     bool get_ppu_ctrl(CTRL_MASK b) const;
 
     void set_ppu_ctrl(uint8_t val);
-
-    uint8_t get_ppu_ctrl() const;
 
 
     // Mask Register
@@ -386,23 +368,7 @@ public:
 
     uint8_t get_ppu_scro() const;
 
-    // ppu address register
 
-    void set_ppu_addr(uint8_t val);
-
-    uint8_t get_ppu_addr() const;
-
-    // ppu data register
-
-    void set_ppu_data(uint8_t val);
-
-    uint8_t get_ppu_data() const;
-
-    // oam dma register
-
-    void set_oam_dma(uint8_t val);
-
-    uint8_t get_oam_dma() const;
 
     // get/set register based on address (for CPU)
     uint8_t get_register(uint16_t address);
@@ -436,14 +402,7 @@ public:
 */
     void clock();
 
-    /**
-     * The pattern table is an area of memory connected to the
-     * PPU that defines the shapes of tiles that make up backgrounds
-     * and sprites. Each tile in the pattern table is 16 bytes,
-     * made of two planes. The first plane controls bit 0 of the color;
-     * the second plane controls bit 1. Any pixel whose color is 0 is background/transparent
-     * (represented by '.' in the following diagram)
-     */
+
 
 
     void updatePatternTileRowVar(uint16_t index);
