@@ -33,7 +33,7 @@ void NESemulator::run() {
     patternScreens[1].init(128, 128, 2, 750, 400, sf::Color::Green);
     sf::Event event;
     bool running = false;
-
+    window.setFramerateLimit(70);
 
     while(window.isOpen()) {
         while(window.pollEvent(event)) {
