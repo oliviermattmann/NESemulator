@@ -4,10 +4,7 @@
 
 #include "NESemulator.h"
 
-NESemulator::NESemulator() //:
-    //cpu(bus),
-    //ppu(bus, screen)
-{
+NESemulator::NESemulator() {
     bus = new Bus();
     cartridge = new Cartridge("../roms/DonkeyKong.nes");
     bus->insertCartridge(*cartridge);
@@ -20,24 +17,28 @@ NESemulator::NESemulator() //:
     initStatus();
     initControllerInfo();
 }
-NESemulator::~NESemulator() {
 
-}
+NESemulator::~NESemulator() {}
 
 void NESemulator::run() {
-
+    sf::Event event;
+    //Initialize the different screens
     window.create(sf::VideoMode(1024, 960), "NES Emulator",
                   sf::Style::Titlebar | sf::Style::Close);
     mainScreen.init(256, 240, 2.5, 50, 50, sf::Color::Cyan);
     patternScreens[0].init(128, 128, 2, 750 ,100, sf::Color::White);
     patternScreens[1].init(128, 128, 2, 750, 400, sf::Color::Green);
-    sf::Event event;
-    bool running = false;
+
+    //set Framerate Limit
     window.setFramerateLimit(70);
 
-    while(window.isOpen()) {
-        while(window.pollEvent(event)) {
+    //we can already draw the patterntables as they don't change
+    drawPatternTable(0);
+    drawPatternTable(1);
 
+    while(window.isOpen()) {
+        //Event Poll for keyboard input
+        while(window.pollEvent(event)) {
             switch (event.type) {
                 case sf::Event::Closed:
                     window.close();
@@ -46,8 +47,7 @@ void NESemulator::run() {
                     if (event.key.code == sf::Keyboard::Escape) {
                         window.close();
                         exit(0);
-                    } else if (event.key.code == sf::Keyboard::P) {
-                        running = !running;
+                        //Set the appropriate Bit in the controller byte for the cpu to read.
                     } else if (event.key.code == sf::Keyboard::Y) {     //A Button
                         bus->controller |= 0x80;
                     } else if (event.key.code == sf::Keyboard::X) {     //B Button
@@ -64,17 +64,10 @@ void NESemulator::run() {
                         bus->controller |= 0x01;
                     } else if (event.key.code == sf::Keyboard::Left) {
                         bus->controller |= 0x02;
-                    } else if (event.key.code == sf::Keyboard::I) {
-                        if (!running) {
-                            do {clock();} while (!cpu->instructionComplete);
-                            updateStatus();
-                            cpu->instructionComplete = false;
-                        }
-                    } else if (event.key.code == sf::Keyboard::O) {
-                        frameStep = !frameStep;
                     }
                     break;
                 case sf::Event::KeyReleased:
+                    //Once the Key is released again the appropriate bit is cleared again
                     if (event.key.code == sf::Keyboard::Y) {
                         bus->controller ^= 0x80;
                     } else if (event.key.code == sf::Keyboard::X) {
@@ -93,59 +86,33 @@ void NESemulator::run() {
                         bus->controller ^= 0x02;
                     }
                     break;
-
                 default:
                     break;
             }
         }
-        //window.clear();
-        /*if (running) {
-            while (!ppu->frameDone) {
-                clock();
-                updateStatus();
-                window.clear();
-                window.draw(mainScreen);
-                for (int i = 0; i < 8; i++) {
-                    window.draw(cpuStatus[i]);
-                }
-                window.display();
-            }
-            ppu->frameDone = false;
-        } else {
-            /*if (instructionStep) {
-                //while (!cpu.instructionComplete) {
-                  //  clock();
-                //}
-                do {clock();} while (!cpu->instructionComplete);
-                instructionStep = false;
-                updateStatus();
-            } else*/ /*if (frameStep) {
-
-                do {clock();} while (!ppu->frameDone);
-                frameStep = false;
-                ppu->frameDone = false;
-            }
-        }*/
-
+            //we clock as many times as we need for the ppu to finish drawing one frame, in other words until VBlank is entered
             do { clock(); } while (!ppu->frameDone);
             ppu->frameDone = false;
+            //clear the screen first
             window.clear();
-            //ppu->drawToScreen();
+            //update status, doesn't really display every change in the cpu status, but it looks cool
+            updateStatus();
+            //draw the Info Text and the cpu Status
             for (int i = 0; i < 8; i++) {
                 window.draw(cpuStatus[i]);
                 window.draw(controllerInfo[i]);
             }
 
-
-            drawPatternTable(0);
-            drawPatternTable(1);
+            //Draw the frame and patterntables
             window.draw(mainScreen);
             window.draw(patternScreens[0]);
             window.draw(patternScreens[1]);
+            //Once everything is drawn the window is displayed
             window.display();
-
     }
 }
+
+//Initializes the cpu Status screen
 void NESemulator::initStatus() {
     if(!myFont.loadFromFile("../external/Fonts/ARIAL.TTF")) {
         cout << "Error loading font in NESemulator.cpp!" << endl;
@@ -171,7 +138,8 @@ void NESemulator::initStatus() {
     cpuStatus[6].setString("V");
     cpuStatus[7].setString("N");
 }
-//always initStatus first
+
+//Initializes the ControllerInfo text; always call as the font is loaded there atm initStatus first
 void NESemulator::initControllerInfo() {
     for (int i = 0; i < 5; i++) {
         controllerInfo[i].setFont(myFont);
@@ -187,6 +155,8 @@ void NESemulator::initControllerInfo() {
     controllerInfo[4].setString("Arrow Keys: Movement");
 
 }
+
+//Updates the cpu status registers on screen, green for set and red for cleared
 void NESemulator::updateStatus() {
     for (int i = 0; i < 8; i++) {
         if (cpu->SR & 1<<i) {
@@ -198,19 +168,27 @@ void NESemulator::updateStatus() {
 }
 
 void NESemulator::clock() {
-
+    //for every cpu clock the ppu is clocked 3 times
     if (masterClock%3 == 0) {
+        //sometimes the cpu writes to the address 0x4014, which indicates that he want to do a dma transfer for the
+        //OAM in the ppu, the ppu then sets dma bool to true, during the dma transfer the cpu is idle and is not clocked
+        //until the transfer is over.
         if(bus->dma) {
             if(bus->idle) {
+                //the transfer is idle for 1 cycle on even cycles and idle for 2 cycles on odd cycles;
                 if (masterClock % 2 == 0) {
                     bus->idle = false;
                 }
             } else {
+                //when even then its leaves the idle catch and comes back odd, so on odds we fetch the oam data from
+                //the main memory and on even cycles we write the data into the oam
                 if (masterClock % 2 == 1) {
                     bus->dmaData = bus->busRead((bus->dmaPage<<8) | bus->dmaAddress);
                 } else {
                     ppu->primaryOAM[bus->dmaAddress] = bus->dmaData;
                     bus->dmaAddress++;
+                    //dmaAddress always starts at zero, in total 256 bytes get transfered, so when the address wraps around
+                    //the transfer is complete and the flags are reset for the next transfer
                     if (bus->dmaAddress == 0) {
                         bus->dma = false;
                         bus->idle = true;
@@ -221,19 +199,18 @@ void NESemulator::clock() {
         } else {
             cpu->clock();
         }
-
     }
     ppu->clock();
     masterClock++;
 }
 
-//Print pattern Table atm
+//Draws the Foreground and Background Patterntable to the screen, which is then displayed
+//number 0 for foreground and 1 for background
 void NESemulator::drawPatternTable(int number) {
     uint8_t patternTableNumber = number;
     uint8_t x = 0, y = 0;
     sf::Color col;
     for (int i = 0; i < 256; i++) {
-
         ppu->getPatternTile(i + number * 256);
         x = (i* 8)% 128;
         if(i%16 == 0 && i !=0) {
@@ -253,7 +230,6 @@ void NESemulator::drawPatternTable(int number) {
                 }
                 int xVal = x + k;
                 int yVal = y + j;
-
                 patternScreens[patternTableNumber].setPixel(xVal, yVal, col);
             }
         }
