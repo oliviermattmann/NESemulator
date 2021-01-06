@@ -17,28 +17,21 @@
  */
 CompactLogger logger = CompactLogger("CPU6502_log.txt");
 
-CPU6502::CPU6502(Bus *busRef)
-{
+CPU6502::CPU6502(Bus *busRef) {
+
+    //Establish connection to the bus and vice versa
     bus = busRef;
     bus->cpu = this;
-    /* Bus */
-    nesTestParser = new NesTestParser();
-
-    /* Display for status*/
-
-
 
     /* Set Registers to 0 */
-    this->X = 0x0;
-    this->Y = 0x0;
-    this->ACC = 0x0;
-    //this->PC = 0x0000;
-    this->PC = 0xC000;        //to use nestest.nes use this line as starting program counter
-    // since the emulator is startet at the reset values, you'd have to comment out the reset method
-    // in the bus start method and set the desired starting PC here.
-    this->SR = 0x24;
 
-    this->SP = 0xFD;
+    this->X = 0x00;
+    this->Y = 0x00;
+    this->ACC = 0x00;
+    this->SR = 0x00;
+
+    this->PC = 0x0000;
+    this->SP = 0x00;
 
     op_code = 0x0;
     addressparam = 0;
@@ -51,7 +44,6 @@ CPU6502::CPU6502(Bus *busRef)
 
     //Initializing OP_TABLE
     //KIL if op_code not set
-
     OP_TABLE[0x00] = {&CPU6502::BRK, &CPU6502::imp, 7};
     OP_TABLE[0x01] = {&CPU6502::ORA, &CPU6502::izx, 6};
     OP_TABLE[0x02] = {&CPU6502::KIL, &CPU6502::imp, 0};
@@ -308,41 +300,18 @@ CPU6502::CPU6502(Bus *busRef)
     OP_TABLE[0xFD] = {&CPU6502::SBC, &CPU6502::abx, 4};//
     OP_TABLE[0xFE] = {&CPU6502::INC, &CPU6502::abx, 7};
     OP_TABLE[0xFF] = {&CPU6502::ISC, &CPU6502::abx, 7};
-
-
 }
 
-
-/**
- * Sets the given Status flag to given state
+/*
+ * Represents a clock signal
  */
- void CPU6502::setStatusFlag(Flags flag, bool state) {
-     if(state) {
-         SR |= flag;        //if bit of flag is not already 1, it will be set to 1
-     } else {
-         SR &= unsigned(0xFF-flag);        //if bit of flag is not already 0, it will be set to 0
-     }
- }
-
- /**
-  * Get the state of a given Flag
-  */
-  uint8_t CPU6502::getStatusFlag(Flags flag) {
-      if ((SR&flag)== 0) {
-          return 0;
-      }
-      return 1;
-                    //if bit was set it will be greater than 0 otherwise it will be zero
-  }
-
 void CPU6502::clock() {
-
+    setStatusFlag(B2, true);
+      //if the cycle is 0 the previous instruction was finished
       if (cycle == 0) {
           setStatusFlag(B2, true);
           op_code = read(PC);
           cycle = OP_TABLE[op_code].cycles;
-          //std::cout << "| PC: 0x"<< std::setfill('0') << std::setw(4)<< std::hex << PC  << " |"<< std::endl;
-          //std::cout << "op Code : " << std::hex << int(op_code) << std::endl;
           EXC_OP();
           if (addCycleInc && opCycleInc) {
               cycle++;
@@ -351,9 +320,6 @@ void CPU6502::clock() {
           opCycleInc = false;
       }
       cycle--;
-    if (cycle == 0) {
-        instructionComplete = true;
-    }
   }
 
 /**
@@ -373,6 +339,7 @@ void CPU6502::EXC_OP() {
 }
 
 void CPU6502::RESET() {
+    //Start at the address of the IRQ Vector
     uint16_t lo = read(0xFFFC);
     uint16_t hi = read(0xFFFD);
     PC = (hi << 8) | lo;
@@ -388,7 +355,7 @@ void CPU6502::RESET() {
     implied = false;
     addCycleInc = false;
     opCycleInc = false;
-    cycle = 7;
+    cycle = 7;              //the first 7 cylces the cpu is idle
 }
 
 void CPU6502::NMI() {
@@ -426,19 +393,22 @@ void CPU6502::IRQ() {
 
 
 /*Addressing modes*/
+/*
+ * reference: https://wiki.nesdev.com/w/index.php/CPU_addressing_modes
+ */
 
-//works
-
-//works
 void CPU6502::imp() {
     implied = true;
     PC++;
 }
+
 void CPU6502::imm() {
     PC++;
     addressparam = PC;
     PC++;
 }
+
+//Never used, but it was mentioned in the wiki
 void CPU6502::acc() {
 }
 
@@ -470,7 +440,7 @@ void CPU6502::abs() {
     addressparam = (hi << 8) | lo;
     PC++;
 }
-//works
+
 void CPU6502::abx() {
     PC++;
     uint8_t lo = read(PC);
@@ -480,10 +450,10 @@ void CPU6502::abx() {
     addressparam += this->X;
     //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
     //did the plus X cause a page cross?
-    addCycleInc = ((addressparam & 0xff00) != (hi<<8));
+    addCycleInc = ((addressparam & 0xff00) != (hi << 8));
     PC++;
 }
-//works
+
 void CPU6502::aby() {
     PC++;
     uint8_t lo = read(PC);
@@ -502,7 +472,7 @@ void CPU6502::aby() {
 void CPU6502::rel() {
     PC++;
     address_rel = read(PC);     //address_rel is a signed integer, so it wraps around after 0x7F
-    addressparam = PC+1 + address_rel;
+    addressparam = PC + 1 + address_rel;
 }
 
 void CPU6502::ind() {
@@ -525,7 +495,6 @@ void CPU6502::izx() {
     PC++;
     uint16_t  zpAddress = read(PC);
 
-
     uint8_t lo = read((zpAddress + X)%256);
     uint8_t hi = read((zpAddress + X + 1)%256);
     PC++;
@@ -547,6 +516,51 @@ void CPU6502::izy() {
 }
 
 
+/* Status Register Handling */
+
+/**
+ * Sets the given Status flag to given state
+ */
+void CPU6502::setStatusFlag(Flags flag, bool state) {
+    if(state) {
+        SR |= flag;                                //if bit of flag is not already 1, it will be set to 1
+    } else {
+        SR &= unsigned(0xFF-flag);                 //if bit of flag is not already 0, it will be set to 0
+    }
+}
+
+/**
+ * Get the state of a given Flag
+ */
+uint8_t CPU6502::getStatusFlag(Flags flag) {
+    if ((SR&flag) == 0) {                         //if bit was set it will be greater than 0 otherwise it will be zero
+        return 0;
+    }
+    return 1;
+}
+
+/*
+ * checks the given value and sets the Negative flag accordingly
+ */
+void CPU6502::setNegative(uint8_t val) {
+    if (val & EIGHTH) {
+        this->setStatusFlag(N, true);
+    } else {
+        this->setStatusFlag(N, false);
+    }
+}
+
+/*
+ * checks the given value and sets the Zero flag accordingly
+ */
+void CPU6502::setZero(uint8_t val) {
+    if (val == 0) {
+        this->setStatusFlag(Z, true);
+    } else {
+        this->setStatusFlag(Z, false);
+    }
+}
+
 
 /* Bus Handling */
 
@@ -560,6 +574,10 @@ uint8_t CPU6502::read(uint16_t address) {
 
 
 /* OP functions */
+/*
+ * references: http://www.obelisk.me.uk/6502/reference.html#ROL; http://www.oxyron.de/html/opcodes02.html;
+ * http://www.oxyron.de/html/opcodes02.html
+ */
 
 void CPU6502::LDA(){
     //possible it needs an additional cycle
@@ -816,7 +834,6 @@ void CPU6502::SBC(){
 void CPU6502::CMP(){
     //possible it needs an additional cycle
     opCycleInc = true;
-
     setStatusFlag(Z ,ACC == read(addressparam));
     setStatusFlag(C, ACC >= read(addressparam));
     setStatusFlag(N, (uint8_t) (ACC - read(addressparam))&EIGHTH);
@@ -986,7 +1003,6 @@ void CPU6502::BCC(){
     if (getStatusFlag(C) == false) {
         //branch is taken, so additional cycle needed
         cycle++;
-        //addressparam = PC + address_rel;
         if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
@@ -1001,7 +1017,6 @@ void CPU6502::BCS(){
     if (getStatusFlag(C) == true) {
         //branch is taken, so additional cycle needed
         cycle++;
-        //addressparam = PC + address_rel;
         if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
@@ -1016,7 +1031,6 @@ void CPU6502::BEQ(){
     if (getStatusFlag(Z) == true) {
         //branch is taken, so additional cycle needed
         cycle++;
-        //addressparam = PC + address_rel;
         if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
@@ -1031,7 +1045,6 @@ void CPU6502::BMI(){
     if (getStatusFlag(N) == true) {
         //branch is taken, so additional cycle needed
         cycle++;
-        //addressparam = PC + address_rel;
         if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
@@ -1046,7 +1059,6 @@ void CPU6502::BNE(){
     if (getStatusFlag(Z) == false) {
         //branch is taken, so additional cycle needed
         cycle++;
-        //addressparam = PC + address_rel;
         if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
@@ -1061,7 +1073,6 @@ void CPU6502::BPL(){
     if (getStatusFlag(N) == false) {
         //branch is taken, so additional cycle needed
         cycle++;
-        //addressparam = PC + address_rel;
         if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
@@ -1076,7 +1087,6 @@ void CPU6502::BVC(){
     if (getStatusFlag(V) == false) {
         //branch is taken, so additional cycle needed
         cycle++;
-        //addressparam = PC + address_rel;
         if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
@@ -1091,7 +1101,6 @@ void CPU6502::BVS(){
     if (getStatusFlag(V) == true) {
         //branch is taken, so additional cycle needed
         cycle++;
-        //addressparam = PC + address_rel;
         if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
@@ -1148,33 +1157,39 @@ void CPU6502::CLV(){
 
 //System Functions
 void CPU6502::BRK(){
+    //prepare PC to be pushed onto stack
     PC++;
+    //set Status flags before before pushing status register
     setStatusFlag(B, true);
     setStatusFlag(B2, true);
     bus->busWrite(0x0100 + SP, (PC >> 8) & 0x00FF);  //push high byte of PC onto stack
     SP--;
-    bus->busWrite(0x0100 + SP, PC & 0x00FF);        //push low byte of PC onto stack
+    bus->busWrite(0x0100 + SP, PC & 0x00FF);         //push low byte of PC onto stack
     SP--;
-    bus->busWrite(0x0100 + SP, SR);
+    bus->busWrite(0x0100 + SP, SR);                        //push status register onto stack
     SP--;
+    //set Interrupt flag in status register
     setStatusFlag(I, true);
     //set PC to IRQ vector
-
     PC = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
 
 }
 
-void CPU6502::NOP(){}
+void CPU6502::NOP(){
+    //NOP does nothing
+}
 
 void CPU6502::RTI(){
     SP++;
+    //fetch old status register from stack
     SR = bus->busRead(0x0100 + SP);
     SP++;
+    //fetch old PC from stack
     uint16_t low = uint16_t (bus->busRead(0x0100 + SP));
     SP++;
     uint16_t high = uint16_t ((bus->busRead(0x0100 + SP)));
     PC = (high << 8) | low;
-    setStatusFlag(B2, true);
+    setStatusFlag(B2, true);    //should always be true, so setting it again just in case
     logger.debug(__FUNCTION__ ,
                  "Return From Interrupt");
 }
@@ -1182,14 +1197,9 @@ void CPU6502::RTI(){
 
 
 //other
-void CPU6502::ISC(){
-}
-
+void CPU6502::ISC(){}
 void CPU6502::KIL(){}
-
 void CPU6502::DCP(){}
-
-
 void CPU6502::AXS(){}
 void CPU6502::LAX(){}
 void CPU6502::SHX(){}
@@ -1203,60 +1213,10 @@ void CPU6502::SRE(){}
 void CPU6502::ANC(){}
 void CPU6502::SLO(){}
 void CPU6502::ALC(){}
-
 void CPU6502::LAS(){}
 void CPU6502::ALR(){}
 void CPU6502::RRA(){}
 void CPU6502::RLA(){}
-
-
-
-void CPU6502::testInstruction(uint8_t opcode) {
-    CPU6502::op_code = opcode;
-    CPU6502::X = 0x07;
-    CPU6502::Y = 0x05;
-    ACC = 0xFF;
-
-    //zp nimmt 0x0001, abs auch 0X0002, imm benutzt die daten in 0x0001 als argument
-    CPU6502::write(0x0001, 0xFF);
-    CPU6502::write(0x0002, 0x01);
-
-    CPU6502::write(0x0014, 0x02);
-    CPU6502::write(0x0015, 0x01);
-
-    //abs
-    CPU6502::write(0x0110, 0x15);
-    //zp
-    CPU6502::write(0x0010, 0x14);
-    //zpx
-    CPU6502::write(0x0017, 0x12);
-    //abx
-    CPU6502::write(0x0117, 0x40);
-    //aby
-    CPU6502::write(0x0115, 0x16);
-
-    //izy
-    CPU6502::write(0x0010, 0x14);
-    CPU6502::write(0x0011, 0x01);
-    CPU6502::write(0x0119, 0x64);
-
-    //izx
-    CPU6502::write(0x0017, 0x12);
-    CPU6502::write(0x0018, 0x01);
-    CPU6502::write(0x0112, 0x72);
-
-    //Rel
-    //PC = 0xC8;
-    //write(PC+1, 0x80);
-
-
-    CPU6502::displayMemoryPage(0);
-    CPU6502::EXC_OP();
-    CPU6502::displayMemoryPage(0);
-    CPU6502::displayRegisters();
-    CPU6502::diplayFlags();
-
-}
 
 std::string CPU6502::intToHexString(uint8_t val) {
     std::stringstream ss;
@@ -1315,18 +1275,3 @@ void CPU6502::diplayFlags() {
     << "| N : " << getStatusFlag(N) << " |" << std::endl << std::endl;
 }
 
-void CPU6502::setNegative(uint8_t val) {
-    if (val & EIGHTH) {
-        this->setStatusFlag(N, true);
-    } else {
-        this->setStatusFlag(N, false);
-    }
-}
-
-void CPU6502::setZero(uint8_t val) {
-    if (val == 0) {
-        this->setStatusFlag(Z, true);
-    } else {
-        this->setStatusFlag(Z, false);
-    }
-}

@@ -21,8 +21,8 @@ class CPU6502 {
 
 public:
     NesTestParser *nesTestParser;
-    /* Main Registers */
 
+    /* Main Registers */
     uint8_t X;       // X-Register
     uint8_t Y;       // Y-Register
     uint8_t ACC;     // Accumulator
@@ -30,20 +30,17 @@ public:
     uint8_t SP;      // Stack Pointer
 
     /* Status Flag Register */
-
     uint8_t SR;      // Status Register
 
-    /* Bus Handling */
-
+    /* Bus Pointer */
     Bus *bus;
-    //sf::Text &statusElements;
 
     /* cycle Handling */
     bool addCycleInc;           //some addressing modes can cause an increase in cycles
     bool opCycleInc;            //some opcodes can cause an increase in cycles
                                 //cycles are only increased with both bools are set to true
     uint8_t cycle;
-    bool instructionComplete = false;
+
 
     /**
      * Constructor for the CPU6502 emulating class.
@@ -531,14 +528,10 @@ private:
      void RTI();
 
 
-     //other
+     //other --> these are unofficial opcodes, not implemented yet as games very rarely use them
     void ISC();
-
     void KIL();
-
     void DCP();
-
-
     void AXS();
     void LAX();
     void SHX();
@@ -560,9 +553,6 @@ private:
 
 
 public:
-    /* DevOp functions */
-
-    void testInstruction(uint8_t opcode);
 
     /**
      * Converts an uint8_t integer to a hex string
@@ -593,7 +583,4 @@ public:
     void diplayFlags();
 
 };
-
-
-
 #endif //NESEMULATOR_CPU6502_H
