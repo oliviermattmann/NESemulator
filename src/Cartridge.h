@@ -28,7 +28,7 @@ public:
     uint8_t mirroring; //0 = horizontal (CIRAM A10 = PPU A11) | 1 = vertical (CIRAM A10 = PPU A10)
     uint8_t trainer;   //1 if trainer present, (in our case no trainer)
 
-    unsigned int BANKSIZE = 16384; //Size of a program data bank (Half for PPU-data)
+    uint32_t BANKSIZE = 16384; //Size of a program data bank (Half for PPU-data)
 
     Cartridge();
 

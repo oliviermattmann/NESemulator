@@ -24,7 +24,7 @@ Cartridge::Cartridge(const std::string& fileName) {
     stream.close();
 
     getHeader(contents);
-    std::cout << (int)nBanksChr << " " << (int)nBanksPrg << " "<<  (int) mapper_id;
+    std::cout << (int)nBanksChr << " " << (int)nBanksPrg << " "<<  (int) mapper_id << endl;
 
     vector<uint8_t>::const_iterator firstPrg = contents.begin() + 16 + trainer*512;
     vector<uint8_t>::const_iterator lastPrg = contents.begin() + (16 + trainer*512) + BANKSIZE*nBanksPrg;
@@ -39,7 +39,7 @@ Cartridge::Cartridge(const std::string& fileName) {
 
     chrData = newVec2;
 
-    std::cout << std::endl << prgData.size() << " " << chrData.size();
+    std::cout << std::endl << prgData.size() << " " << chrData.size() << endl;
 }
 
 void Cartridge::getHeader(const vector<uint8_t> content) {
