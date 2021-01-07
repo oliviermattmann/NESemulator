@@ -1158,6 +1158,7 @@ void CPU6502::CLV(){
 }
 
 //System Functions
+//TODO BRK still fails test from blaarg, needs to be fixed, probably something with the flags
 void CPU6502::BRK(){
     //prepare PC to be pushed onto stack
     PC++;
@@ -1171,8 +1172,9 @@ void CPU6502::BRK(){
     SP--;
     bus->busWrite(0x0100 + SP, SR);                        //push status register onto stack
     SP--;
-    //set Interrupt flag in status register
-    setStatusFlag(I, true);
+    setStatusFlag(B, false);
+
+
     //set PC to IRQ vector
     PC = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
 
