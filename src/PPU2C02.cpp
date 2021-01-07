@@ -389,11 +389,6 @@ void PPU2C02::clock() {
                            spriteCounter[i]--;
 
                        } else if (!pixelSet){
-                           if (secondaryOAM[i*4]< 220 && secondaryOAM[i*4] > 199) {
-                               pixelSet = false;
-                               pixelSet = pixelSet;
-                           }
-
                            spritePixelColorID = (((spriteShift[i][1] & 0x80) > 0 ? 1:0) << 1) | (((spriteShift[i][0] & 0x80) > 0 ? 1:0));
                            spritePaletteID = spriteAttribute[i]&0x03;
                            spritePriority = spriteAttribute[i]&0x10;
@@ -416,17 +411,16 @@ void PPU2C02::clock() {
                 if ((ppu_mask & MASK_MASK::SPRITE_ENABLE) || (ppu_mask & MASK_MASK::BACKGROUND_ENABLE)) {
                     if (spritePixelColorID) {
                         //sprite priority: true = behind background; false = in the front of the background
-                        if (!spritePriority) {
+                        if (!bgPixelColorID) {
+                            finalPixelColorID = spritePixelColorID;
+                            finalPaletteID = 4 + spritePaletteID;
+                        }
+                        else if (!spritePriority) {
                             finalPaletteID = 4 + spritePaletteID;
                             finalPixelColorID = spritePixelColorID;
                         } else {
-                            if (bgPixelColorID) {
-                                finalPixelColorID = bgPixelColorID;
-                                finalPaletteID = bgPaletteID;
-                            } else {
-                                finalPixelColorID = spritePixelColorID;
-                                finalPaletteID = 4 + spritePaletteID;
-                            }
+                            finalPixelColorID = bgPixelColorID;
+                            finalPaletteID = bgPaletteID;
                         }
 
                     } else {
@@ -438,7 +432,7 @@ void PPU2C02::clock() {
             }
             if (cycle == 257) {
                 updateLoopyX();
-                loadScanlineSprites(scanLine+1);
+                loadScanlineSprites(scanLine);
             }
             if (cycle == 337 || cycle == 339) {
                 nameTableFetch = readPPU(getTileAddress(absLoopy));
