@@ -721,12 +721,12 @@ void CPU6502::AND() {
     opCycleInc = true;
 
     ACC = ACC & read(addressparam);
-    if (ACC == 0) {
-        setStatusFlag(Z, true);
-    }
-    if (ACC & EIGHTH) {
-        setStatusFlag(N, true);
-    }
+
+        setStatusFlag(Z, (ACC == 0));
+
+
+        setStatusFlag(N, (ACC & EIGHTH));
+
 
 }
 
@@ -735,12 +735,12 @@ void CPU6502::EOR(){
     opCycleInc = true;
 
     ACC = ACC ^ read(addressparam);
-    if (ACC == 0) {
-        setStatusFlag(Z, true);
-    }
-    if (ACC & EIGHTH) {
-        setStatusFlag(N, true);
-    }
+
+        setStatusFlag(Z, (ACC == 0));
+
+
+        setStatusFlag(N, (ACC & EIGHTH));
+
 }
 
 void CPU6502::ORA(){
