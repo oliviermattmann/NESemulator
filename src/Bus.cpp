@@ -28,7 +28,7 @@ uint8_t Bus::busRead(uint16_t address){
     }
     //Address range for the cartridge data
     else if (address >= 0x8000 & address <= 0xFFFF) {
-        return cartridge.prgData[address%cartridge.BANKSIZE];
+        return cartridge.prgData[address&(cartridge.nBanksPrg > 1 ? 0x7FFF:0x3FFF)];
     }
     //Controller
     else if (address >= 0x4016 && address <= 0x4017)
@@ -43,8 +43,12 @@ uint8_t Bus::busRead(uint16_t address){
 }
 void Bus::busWrite(uint16_t address, uint8_t data){
     //writes to the main memory
+
+
     if (address <= 0x1FFF) {
         //address is mirrored because the memory is is only 2KB
+
+
         RAM[address & 0x07FF] = data;
     }
     //write to this address transfers the controller byte buffered into the status for the cpu to be read 1 bit at a time
