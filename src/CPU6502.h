@@ -36,7 +36,7 @@ public:
     Bus *bus;
 
     /* cycle Handling */
-    bool addCycleInc;           //some addressing modes can cause an increase in cycles
+    bool addrCycleInc;           //some addressing modes can cause an increase in cycles
     bool opCycleInc;            //some opcodes can cause an increase in cycles
                                 //cycles are only increased with both bools are set to true
     uint8_t cycle;
@@ -81,8 +81,8 @@ public:
      *  addressing mode functions and number of clock-cycles.
      */
     struct OP_CODE {
-        void (CPU6502::*funcP)();
-        void (CPU6502::*x)(void) = nullptr;
+        void (CPU6502::*instrFunction)();
+        void (CPU6502::*addrMode)(void) = nullptr;
         uint8_t cycles;
     };
 
