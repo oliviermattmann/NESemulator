@@ -39,7 +39,7 @@ CPU6502::CPU6502(Bus *busRef) {
 
 
     cycle = 0;
-    addCycleInc = false;
+    addrCycleInc = false;
     opCycleInc = false;
 
     //Initializing OP_TABLE
@@ -309,14 +309,18 @@ void CPU6502::clock() {
     setStatusFlag(B2, true);
       //if the cycle is 0 the previous instruction was finished
       if (cycle == 0) {
-          setStatusFlag(B2, true);
+          //read OP Code
           op_code = read(PC);
+          //set the duration of Instruction set by the OP Code
           cycle = OP_TABLE[op_code].cycles;
+          //Execute the Instruction
           EXC_OP();
-          if (addCycleInc && opCycleInc) {
+          //some instructions paired with certain addressing modes need an additional clock cycle
+          if (addrCycleInc && opCycleInc) {
               cycle++;
           }
-          addCycleInc = false;
+          //reset cycle increment bools for next instruction
+          addrCycleInc = false;
           opCycleInc = false;
       }
       cycle--;
@@ -326,15 +330,8 @@ void CPU6502::clock() {
  * Executes a single operation code.
  */
 void CPU6502::EXC_OP() {
-
-    //uint16_t tempPC = PC;
-    (this->*OP_TABLE[op_code].x)();
-    //std::cout << hex << int(op_code) << " PC: " << PC << " ,SP: " << int(SP) << ", SR: "<< hex << int(SR) << std::endl;
-    //std::cout << "address: " << std::setfill('0') << std::setw(4)<< std::hex << int(addressparam)  << " |"<< std::endl;
-    //nesTestParser->getLine();
-    //nesTestParser->validate(tempPC, op_code, addressparam, ACC, X, Y, SR, SP);
-    (this->*OP_TABLE[op_code].funcP)();
-    //std::cout << "_________________________________________"<< std::endl;
+    (this->*OP_TABLE[op_code].addrMode)();
+    (this->*OP_TABLE[op_code].instrFunction)();
     implied = false;
 }
 
@@ -353,7 +350,7 @@ void CPU6502::RESET() {
     addressparam = 0x0000;
     address_rel = 0x00;
     implied = false;
-    addCycleInc = false;
+    addrCycleInc = false;
     opCycleInc = false;
     cycle = 7;              //the first 7 cylces the cpu is idle
 }
@@ -450,7 +447,7 @@ void CPU6502::abx() {
     addressparam += this->X;
     //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
     //did the plus X cause a page cross?
-    addCycleInc = ((addressparam & 0xff00) != (hi << 8));
+    addrCycleInc = ((addressparam & 0xff00) != (hi << 8));
     PC++;
 }
 
@@ -463,7 +460,7 @@ void CPU6502::aby() {
     addressparam += this->Y;
     //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
     //did the plus Y cause a page cross?
-    addCycleInc = ((addressparam & 0xff00) != (hi<<8));
+    addrCycleInc = ((addressparam & 0xff00) != (hi << 8));
     PC++;
 }
 
@@ -512,7 +509,7 @@ void CPU6502::izy() {
     addressparam = ((hi << 8) | lo)+ this->Y;
     //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
     //did the plus x cause a page cross?
-    addCycleInc = ((addressparam & 0xff00) != (hi<<8));
+    addrCycleInc = ((addressparam & 0xff00) != (hi << 8));
 }
 
 
@@ -816,7 +813,7 @@ void CPU6502::SBC(){
     uint16_t a = (uint16_t)ACC;
     uint16_t b = (uint16_t) read(addressparam)^0x00FF;
     uint16_t c = a + b + (uint16_t) getStatusFlag(C);
-    if (((~(a ^ b))&(a ^ c))&0x0080) {
+    if ((~(a ^ b))&(a ^ c)&0x0080) {
         setStatusFlag(V, true);
     } else {
         setStatusFlag(V, false);
@@ -829,14 +826,17 @@ void CPU6502::SBC(){
     ACC = c & 0x00FF;
 
 
+
 }
 
 void CPU6502::CMP(){
     //possible it needs an additional cycle
     opCycleInc = true;
+    uint8_t temp = read(addressparam);
     setStatusFlag(Z ,ACC == read(addressparam));
     setStatusFlag(C, ACC >= read(addressparam));
     setStatusFlag(N, (uint8_t) (ACC - read(addressparam))&EIGHTH);
+
 }
 
 void CPU6502::CPX(){
@@ -873,6 +873,7 @@ void CPU6502::INY(){
 }
 
 void CPU6502::DEC(){
+
     write(addressparam, read(addressparam)-1);
     setStatusFlag(Z, read(addressparam) == 0);
     setStatusFlag(N, read(addressparam) & EIGHTH);
@@ -967,6 +968,7 @@ void CPU6502::ROR(){
 
 //Jumps/Calls
 void CPU6502::JMP(){
+
     PC = addressparam;
     logger.debug(__FUNCTION__ ,
                  "Jump in PC");
@@ -1162,6 +1164,7 @@ void CPU6502::BRK(){
     //set Status flags before before pushing status register
     setStatusFlag(B, true);
     setStatusFlag(B2, true);
+    setStatusFlag(I, true);
     bus->busWrite(0x0100 + SP, (PC >> 8) & 0x00FF);  //push high byte of PC onto stack
     SP--;
     bus->busWrite(0x0100 + SP, PC & 0x00FF);         //push low byte of PC onto stack
