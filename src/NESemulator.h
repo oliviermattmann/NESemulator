@@ -9,6 +9,7 @@
 #include "SFML/System.hpp"
 #include "SFML/Window.hpp"
 #include "SFML/Network.hpp"
+#include <string>
 
 #include "CPU6502.h"
 #include "PPU2C02.h"
