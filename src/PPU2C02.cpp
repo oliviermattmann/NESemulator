@@ -9,6 +9,8 @@ PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
     //establish a connection to the bus and vice versa
     bus = busRef;
     bus->ppu = this;
+    std::memset(primaryOAM, 0xFF, sizeof(primaryOAM));
+    std::memset(secondaryOAM, 0xFF, sizeof(secondaryOAM));
 
     // Set IRQ Ignore bit
     /*
@@ -23,6 +25,16 @@ PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
     }
 
     renderState = PreRender;
+    spriteZeroDrawn = false;
+    spriteZeroOnScanLine = false;
+    spriteZeroHitInFrame = false;
+    writeToggle = false;
+    ppu_ctrl = 0x00;
+    ppu_mask = 0x00;
+    ppu_stat = 0b10100000;
+    ppu_scro = 0x00;
+    ppu_addr = 0x00;
+    ppu_data = 0x00;
     // disable PPU2C02 NMI and rendering
     this->set_ppu_ctrl(NMI_ENABLE, false);
     this->set_ppu_mask(SPRITE_ENABLE, false);
@@ -121,16 +133,36 @@ uint8_t PPU2C02::readPPU(uint16_t address) {
     } else if (address <= 0x3EFF) {
         address = (address & 0x0FFF);
         //determine in what nametable to look for (scrolling)
-        if (address >= 0x0000 && address <= 0x03FF)
-            dataOut = nameTable[0][address & 0x03FF];
-        if (address >= 0x0400 && address <= 0x07FF)
-            dataOut = nameTable[0][address & 0x03FF];
-        if (address >= 0x0800 && address <= 0x0BFF)
-            dataOut = nameTable[1][address & 0x03FF];
-        if (address >= 0x0C00 && address <= 0x0FFF)
-            dataOut = nameTable[1][address & 0x03FF];
+        if (bus->cartridge.mirroring) {
+            if (address >= 0x0000 && address <= 0x03FF)
+                dataOut = nameTable[0][address & 0x03FF];
+            if (address >= 0x0400 && address <= 0x07FF)
+                dataOut = nameTable[1][address & 0x03FF];
+            if (address >= 0x0800 && address <= 0x0BFF)
+                dataOut = nameTable[0][address & 0x03FF];
+            if (address >= 0x0C00 && address <= 0x0FFF)
+                dataOut = nameTable[1][address & 0x03FF];
+        } else {
+            if (address >= 0x0000 && address <= 0x03FF)
+                dataOut = nameTable[0][address & 0x03FF];
+            if (address >= 0x0400 && address <= 0x07FF)
+                dataOut = nameTable[0][address & 0x03FF];
+            if (address >= 0x0800 && address <= 0x0BFF)
+                dataOut = nameTable[1][address & 0x03FF];
+            if (address >= 0x0C00 && address <= 0x0FFF)
+                dataOut = nameTable[1][address & 0x03FF];
+        }
     } else if (address >= 0x3F00 && address <= 0x3FFF) {
         address &= 0x001F;
+        if (address == 0x0008) {
+            address = 0x0000;
+        }
+        if (address == 0x0004) {
+            address = 0x0000;
+        }
+        if (address == 0x000c) {
+            address = 0x0000;
+        }
         if (address == 0x0010) {
             address = 0x0000;
         }
@@ -155,14 +187,26 @@ void PPU2C02::writePPU(uint16_t address, uint8_t data) {
         patternTable[(address & 0x1000) >> 12][(address & 0x0FFF)] = data;
     } else if (address <= 0x3EFF) {
         address = (address & 0x0FFF);
-        if (address >= 0x0000 && address <= 0x03FF)
-            nameTable[0][address & 0x03FF] = data;
-        if (address >= 0x0400 && address <= 0x07FF)
-            nameTable[0][address & 0x03FF] = data;
-        if (address >= 0x0800 && address <= 0x0BFF)
-            nameTable[1][address & 0x03FF] = data;
-        if (address >= 0x0C00 && address <= 0x0FFF)
-            nameTable[1][address & 0x03FF] = data;
+        if (bus->cartridge.mirroring) {
+            if (address >= 0x0000 && address <= 0x03FF)
+                nameTable[0][address & 0x03FF] = data;
+            if (address >= 0x0400 && address <= 0x07FF)
+                nameTable[1][address & 0x03FF] = data;
+            if (address >= 0x0800 && address <= 0x0BFF)
+                nameTable[0][address & 0x03FF] = data;
+            if (address >= 0x0C00 && address <= 0x0FFF)
+                nameTable[1][address & 0x03FF] = data;
+
+        } else {
+            if (address >= 0x0000 && address <= 0x03FF)
+                nameTable[0][address & 0x03FF] = data;
+            if (address >= 0x0400 && address <= 0x07FF)
+                nameTable[0][address & 0x03FF] = data;
+            if (address >= 0x0800 && address <= 0x0BFF)
+                nameTable[1][address & 0x03FF] = data;
+            if (address >= 0x0C00 && address <= 0x0FFF)
+                nameTable[1][address & 0x03FF] = data;
+        }
     } else if (address >= 0x3F00 && address <= 0x3FFF) {
         address &= 0x001F;
         if (address == 0x0010) {
@@ -320,7 +364,7 @@ void PPU2C02::clock() {
 
                 if (cycle == 257) {
                     updateLoopyX();
-                    loadScanlineSprites(scanLine + 1);
+                    //loadScanlineSprites(scanLine+1);
                 }
 
                 if ((cycle > 279) || (cycle < 305)) {
@@ -356,7 +400,7 @@ void PPU2C02::clock() {
             if (cycle == 256) {
                 incrementY();
             }
-            if ((cycle >= 0 && cycle < 257) && ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
+            if ((cycle >= 0 && cycle < 257) ){//&& ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
                 uint8_t spritePixelColorID = 0x00;
                 uint8_t spritePaletteID = 0x00;
                 uint8_t bgPixelColorID = 0x00;
@@ -372,8 +416,8 @@ void PPU2C02::clock() {
                     uint8_t lsbC = (((patternTableDataShift_bg_lsb & fineXMultiplexer) > 0) ? 1 : 0);
                     uint8_t msbC = (((patternTableDataShift_bg_msb & fineXMultiplexer) > 0) ? 1 : 0) << 1;
                     bgPixelColorID = (msbC | lsbC);
-                    bgPaletteID = (((paletteAttributesShift_bg_msb & fineXMultiplexer) > 0) << 1) |
-                                          (paletteAttributesShift_bg_lsb & fineXMultiplexer) > 0;
+                    bgPaletteID = (((paletteAttributesShift_bg_msb & fineXMultiplexer) > 0 ? 1:0) << 1) |
+                                          ((paletteAttributesShift_bg_lsb & fineXMultiplexer) > 0 ? 1:0);
 
 
                     shiftShifters();
@@ -390,12 +434,15 @@ void PPU2C02::clock() {
 
                        } else if (!pixelSet){
                            spritePixelColorID = (((spriteShift[i][1] & 0x80) > 0 ? 1:0) << 1) | (((spriteShift[i][0] & 0x80) > 0 ? 1:0));
-                           spritePaletteID = spriteAttribute[i]&0x03;
-                           spritePriority = spriteAttribute[i]&0x10;
+                           spritePaletteID = (spriteAttribute[i]&0x03);
+                           spritePriority = spriteAttribute[i]&0x20;
                            spriteShift[i][0] <<= 1;
                            spriteShift[i][1] <<= 1;
                            spriteCounter[i]--;
                            if (spritePixelColorID != 0) {
+                               if (i == 0) {
+                                   spriteZeroDrawn = true;
+                               }
                                pixelSet = true;
                            }
 
@@ -409,25 +456,52 @@ void PPU2C02::clock() {
 
                 }
                 if ((ppu_mask & MASK_MASK::SPRITE_ENABLE) || (ppu_mask & MASK_MASK::BACKGROUND_ENABLE)) {
-                    if (spritePixelColorID) {
-                        //sprite priority: true = behind background; false = in the front of the background
-                        if (!bgPixelColorID) {
-                            finalPixelColorID = spritePixelColorID;
-                            finalPaletteID = 4 + spritePaletteID;
-                        }
-                        else if (!spritePriority) {
-                            finalPaletteID = 4 + spritePaletteID;
-                            finalPixelColorID = spritePixelColorID;
-                        } else {
-                            finalPixelColorID = bgPixelColorID;
-                            finalPaletteID = bgPaletteID;
-                        }
-
-                    } else {
+                    if (bgPixelColorID == 0 && spritePixelColorID == 0) {
                         finalPixelColorID = bgPixelColorID;
                         finalPaletteID = bgPaletteID;
+                    } else if (bgPixelColorID == 0 && spritePixelColorID != 0) {
+                        finalPixelColorID = spritePixelColorID;
+                        finalPaletteID =  4+spritePaletteID;
+                    } else if (bgPixelColorID != 0 && spritePixelColorID == 0) {
+                        finalPixelColorID = bgPixelColorID;
+                        finalPaletteID = bgPaletteID;
+                    } else {
+                        //sprite priority of 1 means sprite is behind background
+                        if (spritePriority) {
+                            finalPixelColorID = bgPixelColorID;
+                            finalPaletteID = bgPaletteID;
+                        } else {
+                            finalPixelColorID = spritePixelColorID;
+                            finalPaletteID = 4+spritePaletteID;
+                        }
+                    }
+
+
+                }
+                if (spriteZeroOnScanLine && spriteZeroDrawn) {
+                    //see wiki on when it happens and when not
+                    //http://wiki.nesdev.com/w/index.php/PPU_OAM
+                    //it can only occur if both renderings are enabled, because its a collision between the background
+                    //and the foreground
+                    if (get_ppu_mask(MASK_MASK::SPRITE_ENABLE) && get_ppu_mask(MASK_MASK::BACKGROUND_ENABLE)) {
+                        //only when they are not opaque (not zero)
+                        if (bgPixelColorID!=0 && spritePixelColorID!=0) {
+                            //if either of those bits in the mask register are zero we ignore cycle 0 to 7
+                            if (!get_ppu_mask(MASK_MASK::SPRITE_LEFT_COL_ENABLE) || !get_ppu_mask(MASK_MASK::BACKGR_LEFT_COL_ENABLE)) {
+                                if (cycle >= 8 && cycle < 255) {
+                                    set_ppu_stat(STAT_MASK::SPRITE_ZERO_HIT, true);
+                                    spriteZeroDrawn = false;
+                                }
+                            } else {
+                                if (cycle >= 0 && cycle < 255) {
+                                    set_ppu_stat(STAT_MASK::SPRITE_ZERO_HIT, true);
+                                    spriteZeroDrawn = false;
+                                }
+                            }
+                        }
                     }
                 }
+
                 ppuScreen.setPixel(cycle , scanLine, getColor(finalPaletteID, finalPixelColorID));
             }
             if (cycle == 257) {
@@ -558,7 +632,7 @@ void PPU2C02::fetchPipeline() {
 
 
 sf::Color PPU2C02::getColor(uint8_t palette, uint8_t colorIndex) {
-    return colors[readPPU(0x3F00 + (palette << 2) + colorIndex) & 0x3F];
+    return colors[(readPPU(0x3F00 | (palette << 2) | colorIndex)) & 0x3F];
 }
 
 void PPU2C02::getPatternTile(uint16_t index) {
@@ -682,7 +756,7 @@ uint16_t  PPU2C02::getTileAddress(uint16_t loopy) {
 }
 
 uint16_t PPU2C02::getAttributeAddress(uint16_t loopy) {
-    return 0x23C0 | (loopy & 0x0C00) | (loopy >> 4) & 0x38 | ((loopy >> 2) & 0x07);
+    return 0x23C0 | (loopy & 0x0C00) | ((loopy >> 4) & 0x38) | ((loopy >> 2) & 0x07);
 }
 
 /*
@@ -699,8 +773,8 @@ void PPU2C02::loadShifters() {
     //is determined by coarseX and coarseY and the attributeFetch variable is set accordingly, eg:
     //tile is in section B so attributeFetch = 0b000000Bb, this is then inflated to 8 bits, because the palette given
     //by the section applies to all pixels in a section
-    paletteAttributesShift_bg_lsb |= ((attributeFetch & 0b01) ? 0xFF : 0x00);
-    paletteAttributesShift_bg_msb |= ((attributeFetch & 0b10) ? 0xFF : 0x00);
+    paletteAttributesShift_bg_lsb = (paletteAttributesShift_bg_lsb&0xFF00) | ((attributeFetch & 0x01) > 0 ? 0x00FF : 0x0000);
+    paletteAttributesShift_bg_msb = (paletteAttributesShift_bg_msb&0xFF00) |((attributeFetch & 0x02) > 0 ? 0x00FF : 0x0000);
 }
 
 void PPU2C02::shiftShifters() {
@@ -725,18 +799,22 @@ void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
     std::memset(secondaryOAM, 0xFF, sizeof(secondaryOAM));
     spriteCount = 0;
     uint8_t count = 0;
+    spriteZeroOnScanLine = false;
     while (spriteCount < 9 && count < 64) {
-        //cout << int(primaryOAM[count*4]) << endl;
+
         if (primaryOAM[count * 4] <= (nextScanLine)) {
+
             int16_t difference = (nextScanLine) - uint16_t(primaryOAM[count * 4]);
-            bool verticalFlip = false;
-            bool horizontalFlip = false;
-            //if(get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT)) {
+
             if ((difference < 16 && get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT))
                 || (difference < 8 && !get_ppu_ctrl(CTRL_MASK::SPRITE_HEIGHT))) {
                 if (spriteCount == 8) {
                     set_ppu_stat(STAT_MASK::SPRITE_OVERFLOW, true);
                     break;
+                }
+                if (count == 0) {
+
+                    spriteZeroOnScanLine = true;
                 }
                 std::memcpy(secondaryOAM + sizeof(uint8_t) * 4 * spriteCount, primaryOAM + sizeof(uint8_t) * 4 * count,
                             sizeof(uint8_t) * 4);

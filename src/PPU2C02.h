@@ -93,6 +93,13 @@ public:
     int16_t spriteCounter[8];
     //Sprite counter for next scanline
     uint8_t spriteCount = 0;
+    //bool for telling if if sprite zero is on scanline
+    //doesn't mean it gets hit
+    bool spriteZeroOnScanLine;
+    //bool if sprite zero is actually drawn
+    bool spriteZeroDrawn;
+
+    bool spriteZeroHitInFrame;
 
 
     //Multiplexer Mask used for fineX scrolling
