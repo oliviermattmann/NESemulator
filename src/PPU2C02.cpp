@@ -154,10 +154,11 @@ uint8_t PPU2C02::readPPU(uint16_t address) {
         }
     } else if (address >= 0x3F00 && address <= 0x3FFF) {
         address &= 0x001F;
-        if (address == 0x0008) {
+        //first color of every palette is mirrored to the background color at 0x3F00
+        if (address == 0x0004) {
             address = 0x0000;
         }
-        if (address == 0x0004) {
+        if (address == 0x0008) {
             address = 0x0000;
         }
         if (address == 0x000c) {

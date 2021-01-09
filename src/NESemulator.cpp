@@ -11,7 +11,7 @@ NESemulator::NESemulator() {
     std::string str;
     cin >> str;
     cartridge = new Cartridge(str);*/
-    cartridge = new Cartridge("../roms/DonkeyKong.nes");
+    cartridge = new Cartridge("../roms/SMB.nes");
     bus->insertCartridge(*cartridge);
     cpu = new CPU6502(bus);
     ppu = new PPU2C02(bus, mainScreen);
