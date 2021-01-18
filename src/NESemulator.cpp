@@ -158,8 +158,8 @@ void NESemulator::initControllerInfo() {
         controllerInfo[i].setStyle(sf::Text::Bold);
         controllerInfo[i].setFillColor(sf::Color::White);
     }
-    controllerInfo[0].setString("Y: A Button (jump in DK)");
-    controllerInfo[1].setString("X: B Button (no use found yet)");
+    controllerInfo[0].setString("Y: A Button (JUMP)");
+    controllerInfo[1].setString("X: B Button (SPRINT/ABILITY)");
     controllerInfo[2].setString("A: Select (confirms selection in Menu also pauses the game)");
     controllerInfo[3].setString("S: Start (change selection in Menu)");
     controllerInfo[4].setString("Arrow Keys: Movement");
