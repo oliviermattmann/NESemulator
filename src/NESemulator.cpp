@@ -69,6 +69,8 @@ void NESemulator::run() {
                         bus->controller |= 0x01;
                     } else if (event.key.code == sf::Keyboard::Left) {
                         bus->controller |= 0x02;
+                    } else if (event.key.code == sf::Keyboard::R) {
+                        cpu->RESET();
                     }
                     break;
                 case sf::Event::KeyReleased:
