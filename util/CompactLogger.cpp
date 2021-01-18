@@ -17,10 +17,10 @@ CompactLogger::CompactLogger(const char* file_name) {
     this->file_name = file_name;
     this->printsTerminal = true;
     // Overwrite existing file.
-    std::ofstream file(file_name, std::ofstream::trunc);
+    /*std::ofstream file(file_name, std::ofstream::trunc);
     file << "";
     file.flush();
-    file.close();
+    file.close();*/
 }
 
 void CompactLogger::setLevel(CompactLogger::LEVEL _level) {
