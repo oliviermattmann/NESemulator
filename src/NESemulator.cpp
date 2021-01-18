@@ -8,6 +8,7 @@ NESemulator::NESemulator() {
     bus = new Bus();
     /*cout << "Place from exe in the same folder as the rom folder." << endl;
     cout << "specify the rom with roms/__________; or ../roms/__________ when running source code" << endl;
+    cout << "eg: \"roms/SMB.nes\"" << endl;
     std::string str;
     cin >> str;
     cartridge = new Cartridge(str);*/
@@ -121,12 +122,14 @@ void NESemulator::run() {
 
 //Initializes the cpu Status screen
 void NESemulator::initStatus() {
-    if(!myFont.loadFromFile("resources/Fonts/ARIAL.TTF")) {
+    /*if(!myFont.loadFromFile("resources/Fonts/ARIAL.TTF")) {
         cout << "Error Loading font (ignore when running source code)" << endl;
-    }
-    if (!myFont.loadFromFile("../resources/Fonts/ARIAL.TTF")) {
-        cout << "Error loading font, shouldn't happen" << endl;
-    }
+    }*/
+
+        if (!myFont.loadFromFile("../resources/Fonts/ARIAL.TTF")) {
+            cout << "Error loading font, shouldn't happen" << endl;
+        }
+
     for (int i = 0; i < 8; i++) {
         cpuStatus[i].setFont(myFont);
         if (i == 2) {
