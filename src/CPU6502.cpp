@@ -306,6 +306,8 @@ CPU6502::CPU6502(Bus *busRef) {
  * Represents a clock signal
  */
 void CPU6502::clock() {
+    //The B2 or U status flag should always be set so we do it every clock in case it gets cleared
+    //for some reason
     setStatusFlag(B2, true);
       //if the cycle is 0 the previous instruction was finished
       if (cycle == 0) {
@@ -479,10 +481,10 @@ void CPU6502::ind() {
     uint8_t hi = read(PC);
     uint16_t tempAddress = (hi << 8) | lo;
 
-    //weird bug when lo == 0xFF
+    //weird bug of the NES when lo == 0xFF
     if (lo == 0xFF) {
         //if this is the case, the MSB will be fetched from tempAddress 0xhi00 instead of 0xhilo+1, the LSB is fetched as usual (0xhilo)
-        addressparam = (read(uint16_t (hi << 8)) << 8)| read(tempAddress);
+        addressparam = (read(uint16_t (hi << 8)) << 8) | read(tempAddress);
     } else { //otherwise fetch as usual, MSB = read(tempAddress+1), LSB = read(tempAddress)
         addressparam = (read(tempAddress + 1) << 8) | read(tempAddress);
     }
@@ -721,13 +723,9 @@ void CPU6502::AND() {
     opCycleInc = true;
 
     ACC = ACC & read(addressparam);
-
+    //update flags to new accumulator
         setStatusFlag(Z, (ACC == 0));
-
-
         setStatusFlag(N, (ACC & EIGHTH));
-
-
 }
 
 void CPU6502::EOR(){
@@ -735,12 +733,9 @@ void CPU6502::EOR(){
     opCycleInc = true;
 
     ACC = ACC ^ read(addressparam);
-
+        //update flags to new accumulator
         setStatusFlag(Z, (ACC == 0));
-
-
         setStatusFlag(N, (ACC & EIGHTH));
-
 }
 
 void CPU6502::ORA(){
@@ -780,7 +775,7 @@ void CPU6502::BIT(){
 }
 
 //Arithmetic
-
+//TODO maybe comment and explain adc and sbc as they are the most complex ones, especially the overflow flag v
 void CPU6502::ADC(){
     //possible it needs an additional cycle
     opCycleInc = true;
@@ -793,11 +788,13 @@ void CPU6502::ADC(){
     } else {
         setStatusFlag(V, false);
     }
-
+    //update zero flag
     setStatusFlag(Z, (c & 0x00FF) == 0);
-
+    //update carry flag
     setStatusFlag(C, c > 255);
+    //update negative flag
     setStatusFlag(N, c & EIGHTH);
+    //write result back to accumulator
     ACC = (uint8_t) c & 0x00FF;
 }
 
@@ -818,11 +815,13 @@ void CPU6502::SBC(){
     } else {
         setStatusFlag(V, false);
     }
-
+    //update zero flag
     setStatusFlag(Z, (c & 0x00FF) == 0);
-
+    //update carry flag
     setStatusFlag(C, c & 0xFF00);
+    //update negative flag
     setStatusFlag(N, c & EIGHTH);
+    //write result back to accumulator
     ACC = c & 0x00FF;
 
 
@@ -975,7 +974,6 @@ void CPU6502::JMP(){
 }
 
 void CPU6502::JSR(){
-    //TODO check if PC-1 onto stack of PC
     //(Jump to Subroutine) The JSR instruction pushes the address (minus one) of the return point on to the stack (PC-1)
     // and then sets the program counter to the target memory address.
     bus->busWrite(0x0100 + SP, ((PC-1) >> 8) & 0x00FF);     //push high-byte of PC-1 to Stack
@@ -1158,21 +1156,19 @@ void CPU6502::CLV(){
 }
 
 //System Functions
-//TODO BRK still fails test from blaarg, needs to be fixed, probably something with the flags
 void CPU6502::BRK(){
     //prepare PC to be pushed onto stack
     PC++;
     //set Status flags before before pushing status register
     setStatusFlag(B, true);
     setStatusFlag(B2, true);
-    setStatusFlag(I, true);
     bus->busWrite(0x0100 + SP, (PC >> 8) & 0x00FF);  //push high byte of PC onto stack
     SP--;
     bus->busWrite(0x0100 + SP, PC & 0x00FF);         //push low byte of PC onto stack
     SP--;
     bus->busWrite(0x0100 + SP, SR);                        //push status register onto stack
     SP--;
-    setStatusFlag(B, false);
+    setStatusFlag(I, true);
 
 
     //set PC to IRQ vector
@@ -1201,7 +1197,7 @@ void CPU6502::RTI(){
 
 
 
-//other
+//other (unofficial op-codes)
 void CPU6502::ISC(){}
 void CPU6502::KIL(){}
 void CPU6502::DCP(){}

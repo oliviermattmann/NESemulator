@@ -76,8 +76,8 @@ public:
     /* Operation-Code Handling */
     /**
      *  OP_CODE struct emulates an entry in the
-     *  Operation-Code-Matrix and contains within
-     *  it function pointers to the operations themselves,
+     *  Operation-Code-Matrix and contains
+     *  function pointers to the operations themselves,
      *  addressing mode functions and number of clock-cycles.
      */
     struct OP_CODE {
@@ -86,11 +86,11 @@ public:
         uint8_t cycles;
     };
 
-    uint8_t op_code;
-    uint16_t addressparam;
+    uint8_t op_code;        //Index into the OP-Code Lookuptable
+    uint16_t addressparam;  //set by addressing mode funcions
     uint8_t data;           //needed for arithmetic functions
     int8_t address_rel;     //needed for branching instructions
-    bool implied;
+    bool implied;           //used to indicate that addressing mode is implied
 
     OP_CODE OP_TABLE[256]{};
 
@@ -135,6 +135,7 @@ public:
         EIGHTH = 1 << 7
     };
 
+    //Enum using the BitMask for better understandability
     enum Flags {
        C = FIRST,
        Z = SECOND,
@@ -553,6 +554,9 @@ private:
 
 
 public:
+    /*
+     * These functions are for debugging purposes.
+     */
 
     /**
      * Converts an uint8_t integer to a hex string
