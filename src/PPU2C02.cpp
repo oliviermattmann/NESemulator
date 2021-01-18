@@ -132,7 +132,7 @@ uint8_t PPU2C02::readPPU(uint16_t address) {
         dataOut = bus->cartridge.chrData[address];
     } else if (address <= 0x3EFF) {
         address = (address & 0x0FFF);
-        //determine in what nametable to look for (scrolling)
+        //details can be found in write ppu
         if (bus->cartridge.mirroring) {
             if (address >= 0x0000 && address <= 0x03FF)
                 dataOut = nameTable[0][address & 0x03FF];
@@ -153,17 +153,20 @@ uint8_t PPU2C02::readPPU(uint16_t address) {
                 dataOut = nameTable[1][address & 0x03FF];
         }
     } else if (address >= 0x3F00 && address <= 0x3FFF) {
+        //bottom 5 bits are masked as only they are relevant
         address &= 0x001F;
-        //first color of every palette is mirrored to the background color at 0x3F00
+        //first color of background palettes (0x0000, 0x0004, 0x0008, 0x000C) is mirrored to the background color at 0x3F00
         if (address == 0x0004) {
             address = 0x0000;
         }
         if (address == 0x0008) {
             address = 0x0000;
         }
-        if (address == 0x000c) {
+        if (address == 0x000C) {
             address = 0x0000;
         }
+        //these four addresses are mapped to the colors in the background palettes
+        //for details on how the mirroring of colors work refer to: https://wiki.nesdev.com/w/index.php/PPU_palettes
         if (address == 0x0010) {
             address = 0x0000;
         }
@@ -187,8 +190,22 @@ void PPU2C02::writePPU(uint16_t address, uint8_t data) {
     if (address < 0x2000) {
         patternTable[(address & 0x1000) >> 12][(address & 0x0FFF)] = data;
     } else if (address <= 0x3EFF) {
+        //the size of the nametables is not 0x3EFF bytes, so it gets mirrored down to 0x0FFF bytes
         address = (address & 0x0FFF);
+        //depending on the mirroring we read and write from different nametables
+        /*
+         * It can be visualized like this
+         * o-----o-----o
+         * |  0  |  1  |
+         * o-----o-----o
+         * |  1  |
+         * o-----o
+         * depending on the mirroring (vertical or horizontal) given by the cartridge we write to certain nametables when
+         * in a certain address range to make scrolling possible. In Theory the NES has 4 nametables, but it only has memory
+         * for 2, so we use 2 and and use them depending on the mirroring. More info at https://wiki.nesdev.com/w/index.php/PPU_nametables
+         */
         if (bus->cartridge.mirroring) {
+            //Vertical Mirroring
             if (address >= 0x0000 && address <= 0x03FF)
                 nameTable[0][address & 0x03FF] = data;
             if (address >= 0x0400 && address <= 0x07FF)
@@ -199,6 +216,7 @@ void PPU2C02::writePPU(uint16_t address, uint8_t data) {
                 nameTable[1][address & 0x03FF] = data;
 
         } else {
+            //Horizontal Mirroring
             if (address >= 0x0000 && address <= 0x03FF)
                 nameTable[0][address & 0x03FF] = data;
             if (address >= 0x0400 && address <= 0x07FF)
@@ -208,8 +226,12 @@ void PPU2C02::writePPU(uint16_t address, uint8_t data) {
             if (address >= 0x0C00 && address <= 0x0FFF)
                 nameTable[1][address & 0x03FF] = data;
         }
+    //Palette Address Range
     } else if (address >= 0x3F00 && address <= 0x3FFF) {
+        //the bottom 5 bits are masked as they are the only relevant ones
         address &= 0x001F;
+        //These 4 addresses of the foreground palette/color are mirrored to the respective background palette/color
+        //These four colors in the background palettes are actually not used by the background, only foreground
         if (address == 0x0010) {
             address = 0x0000;
         }
@@ -365,7 +387,7 @@ void PPU2C02::clock() {
 
                 if (cycle == 257) {
                     updateLoopyX();
-                    //loadScanlineSprites(scanLine+1);
+                    loadScanlineSprites(scanLine);
                 }
 
                 if ((cycle > 279) || (cycle < 305)) {
@@ -507,7 +529,9 @@ void PPU2C02::clock() {
             }
             if (cycle == 257) {
                 updateLoopyX();
-                loadScanlineSprites(scanLine);
+                if (scanLine < 239) {
+                    loadScanlineSprites(scanLine);
+                }
             }
             if (cycle == 337 || cycle == 339) {
                 nameTableFetch = readPPU(getTileAddress(absLoopy));
@@ -542,7 +566,7 @@ void PPU2C02::clock() {
 
         case VerticalBlank:
             if (scanLine == 241 && cycle == 1) {
-                set_ppu_stat(STAT_MASK::VBLANK);
+                set_ppu_stat(STAT_MASK::VBLANK, true);
                 frameDone = true;
                 if (get_ppu_ctrl(CTRL_MASK::NMI_ENABLE)) {
                     nmiVblank();
@@ -789,6 +813,9 @@ void PPU2C02::shiftShifters() {
     }
 }
 
+/*
+ * Each visible
+ */
 void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
     //byte 0 y position of the top of sprite
     //byte 1 Tile index number
@@ -889,6 +916,9 @@ void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
     }
 }
 
+/*
+ * Method to transfer X components from tempLoopy to absLoopy
+ */
 void PPU2C02::updateLoopyX() {
     if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
         //update coarseX
@@ -900,6 +930,9 @@ void PPU2C02::updateLoopyX() {
     }
 }
 
+/*
+ * Method to transfer Y components from tempLoopy to absLoopy
+ */
 void PPU2C02::updateLoopyY() {
     //update fineY
     if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
@@ -913,7 +946,10 @@ void PPU2C02::updateLoopyY() {
         absLoopy |= (tempLoopy & 0x03E0);
     }
 }
-
+/*
+ * Method used to flip bits of the pattern byte horizontally, for example
+ * 0b01100000 -> 0x00000110, used for sprites
+ */
 void PPU2C02::flipHorizonally(uint8_t spriteIndex) {
     for (int i = 0; i < 2; i++) {
         uint8_t temp = 0x00;
