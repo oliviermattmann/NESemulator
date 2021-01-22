@@ -6,12 +6,6 @@
 
 NESemulator::NESemulator() {
     bus = new Bus();
-    /*cout << "Place from exe in the same folder as the rom folder." << endl;
-    cout << "specify the rom with roms/__________; or ../roms/__________ when running source code" << endl;
-    cout << "eg: \"roms/SMB.nes\"" << endl;
-    std::string str;
-    cin >> str;
-    cartridge = new Cartridge(str);*/
     cartridge = new Cartridge("../roms/SMB.nes");
     bus->insertCartridge(*cartridge);
     cpu = new CPU6502(bus);
@@ -36,9 +30,9 @@ void NESemulator::run() {
     patternScreens[1].init(128, 128, 2, 750, 400, sf::Color::Green);
 
     //set Framerate Limit
-    window.setFramerateLimit(60);
+    window.setFramerateLimit(70);
 
-    //we can already draw the patterntables as they don't change
+    //we can already prepare the patterntables as they don't change
     drawPatternTable(0);
     drawPatternTable(1);
 

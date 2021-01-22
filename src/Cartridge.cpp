@@ -4,7 +4,6 @@
 
 #include <fstream>
 #include "Cartridge.h"
-#include "CPU6502.h"
 
 Cartridge::Cartridge() {
     return;
@@ -12,14 +11,9 @@ Cartridge::Cartridge() {
 
 
 Cartridge::Cartridge(const std::string& fileName) {
-
+    //https://stackoverflow.com/questions/15138353/how-to-read-a-binary-file-into-a-vector-of-unsigned-chars
     std::ifstream stream(fileName, std::ios::in | std::ios::binary);
     std::vector<uint8_t> contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
-
-    for(auto i: contents) {
-        int value = i;
-    }
-
     std::cout << "file size: " << contents.size() << std::endl;
     stream.close();
 

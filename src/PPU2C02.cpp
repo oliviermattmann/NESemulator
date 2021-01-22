@@ -1,5 +1,4 @@
 
-#include <random>
 #include <functional>
 #include "PPU2C02.h"
 
@@ -12,10 +11,6 @@ PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
     std::memset(primaryOAM, 0xFF, sizeof(primaryOAM));
     std::memset(secondaryOAM, 0xFF, sizeof(secondaryOAM));
 
-    // Set IRQ Ignore bit
-    /*
-     * https://wiki.nesdev.com/w/index.php/IRQ
-     */
     // memory init
     for (uint8_t & text : this->nameTable[0]) {
         text = 0x00;
@@ -128,7 +123,7 @@ uint8_t PPU2C02::readPPU(uint16_t address) {
     address = address & 0x3FFF;
     uint8_t dataOut = 0x00;
     if (address < 0x2000) {
-
+        //since the patterntable is usually not written to we read directly from the cartridge
         dataOut = bus->cartridge.chrData[address];
     } else if (address <= 0x3EFF) {
         address = (address & 0x0FFF);
@@ -189,6 +184,7 @@ void PPU2C02::writePPU(uint16_t address, uint8_t data) {
     address = address & 0x3FFF;
     if (address < 0x2000) {
         patternTable[(address & 0x1000) >> 12][(address & 0x0FFF)] = data;
+        //usually the pattern table is not written to, i.e. is static
     } else if (address <= 0x3EFF) {
         //the size of the nametables is not 0x3EFF bytes, so it gets mirrored down to 0x0FFF bytes
         address = (address & 0x0FFF);
@@ -423,7 +419,7 @@ void PPU2C02::clock() {
             if (cycle == 256) {
                 incrementY();
             }
-            if ((cycle >= 0 && cycle < 257) ){//&& ppu_mask & MASK_MASK::BACKGROUND_ENABLE) {
+            if ((cycle >= 0 && cycle < 257) ){
                 uint8_t spritePixelColorID = 0x00;
                 uint8_t spritePaletteID = 0x00;
                 uint8_t bgPixelColorID = 0x00;

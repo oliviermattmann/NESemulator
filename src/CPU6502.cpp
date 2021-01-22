@@ -340,8 +340,8 @@ void CPU6502::EXC_OP() {
 void CPU6502::RESET() {
     //Start at the address of the IRQ Vector
     uint16_t lo = read(0xFFFC);
-    uint16_t hi = read(0xFFFD);
-    PC = (hi << 8) | lo;
+    uint16_t hi = read(0xFFFD) << 8;
+    PC = (hi | lo);
     setStatusFlag(I, true);
     ACC = 0x00;
     X = 0x00;
@@ -366,8 +366,8 @@ void CPU6502::NMI() {
     SP--;
     setStatusFlag(I, true);
     uint16_t lo = read(0xFFFA);
-    uint16_t hi = read(0xFFFB);
-    PC = (hi << 8) | lo;
+    uint16_t hi = read(0xFFFB) << 8;
+    PC = (hi | lo);
     cycle = 7;
     logger.debug(__FUNCTION__ ,
                  "NMI call from PPU");
@@ -383,8 +383,8 @@ void CPU6502::IRQ() {
         SP--;
         setStatusFlag(I, true);
         uint16_t lo = read(0xFFFE);
-        uint16_t hi = read(0xFFFF);
-        PC = (hi << 8) | lo;
+        uint16_t hi = read(0xFFFF) << 8;
+        PC = (hi | lo);
         cycle = 7;
     }
 }
@@ -435,8 +435,8 @@ void CPU6502::abs() {
     PC++;
     uint8_t lo = read(PC);
     PC++;
-    uint8_t hi = read(PC);
-    addressparam = (hi << 8) | lo;
+    uint16_t hi = read(PC) << 8;
+    addressparam = (hi | lo);
     PC++;
 }
 
@@ -444,12 +444,12 @@ void CPU6502::abx() {
     PC++;
     uint8_t lo = read(PC);
     PC++;
-    uint8_t hi = read(PC);
-    addressparam = (hi << 8) | lo;
+    uint16_t hi = read(PC) << 8;
+    addressparam = (hi | lo);
     addressparam += this->X;
     //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
     //did the plus X cause a page cross?
-    addrCycleInc = ((addressparam & 0xff00) != (hi << 8));
+    addrCycleInc = ((addressparam & 0xff00) != hi);
     PC++;
 }
 
@@ -457,12 +457,12 @@ void CPU6502::aby() {
     PC++;
     uint8_t lo = read(PC);
     PC++;
-    uint8_t hi = read(PC);
-    addressparam = (hi << 8) | lo;
+    uint16_t hi = read(PC) << 8;
+    addressparam = (hi | lo);
     addressparam += this->Y;
     //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
     //did the plus Y cause a page cross?
-    addrCycleInc = ((addressparam & 0xff00) != (hi << 8));
+    addrCycleInc = ((addressparam & 0xff00) != hi);
     PC++;
 }
 
@@ -474,19 +474,22 @@ void CPU6502::rel() {
     addressparam = PC + 1 + address_rel;
 }
 
+//addressing mode bug: https://atariage.com/forums/topic/72382-6502-indirect-addressing-ff-behavior/
+//only instruction using this addressing mode is jmp (jump)
 void CPU6502::ind() {
     PC++;
-    uint8_t lo =read(PC);
+    uint8_t lo = read(PC);
     PC++;
-    uint8_t hi = read(PC);
-    uint16_t tempAddress = (hi << 8) | lo;
+    uint16_t hi = read(PC) << 8;
+    uint16_t tempAddress = (hi | lo);
 
     //weird bug of the NES when lo == 0xFF
     if (lo == 0xFF) {
         //if this is the case, the MSB will be fetched from tempAddress 0xhi00 instead of 0xhilo+1, the LSB is fetched as usual (0xhilo)
-        addressparam = (read(uint16_t (hi << 8)) << 8) | read(tempAddress);
+        //so in essence the page is not crossed and the lsb just wraps back to zero while the msb stays the same
+        addressparam = ((uint16_t) read(hi) << 8 | read(tempAddress));
     } else { //otherwise fetch as usual, MSB = read(tempAddress+1), LSB = read(tempAddress)
-        addressparam = (read(tempAddress + 1) << 8) | read(tempAddress);
+        addressparam = ((uint16_t )read(tempAddress + 1) << 8) | read(tempAddress);
     }
 }
 
@@ -495,9 +498,9 @@ void CPU6502::izx() {
     uint16_t  zpAddress = read(PC);
 
     uint8_t lo = read((zpAddress + X)%256);
-    uint8_t hi = read((zpAddress + X + 1)%256);
+    uint16_t hi = read((zpAddress + X + 1)%256) << 8;
     PC++;
-    addressparam = (hi << 8) | lo;
+    addressparam = (hi | lo);
 }
 
 void CPU6502::izy() {
@@ -505,13 +508,13 @@ void CPU6502::izy() {
     uint16_t zpAddress = read(PC);
 
     uint8_t lo = read(zpAddress%256);             //read first byte of the actual address on the zero page
-    uint8_t hi = read((zpAddress+1)%256);
+    uint16_t hi = read((zpAddress+1)%256) << 8;
     PC++;
 
-    addressparam = ((hi << 8) | lo)+ this->Y;
+    addressparam = (hi | lo) + this->Y;
     //check if page was crossed, if yes then an additional cycle is possible (depends on the instruction)
     //did the plus x cause a page cross?
-    addrCycleInc = ((addressparam & 0xff00) != (hi << 8));
+    addrCycleInc = ((addressparam & 0xff00) != hi);
 }
 
 
@@ -562,11 +565,11 @@ void CPU6502::setZero(uint8_t val) {
 
 
 /* Bus Handling */
-
+//connection to the other components, bus writes to main memory or the ppu, the cartridge is not written to
 void CPU6502::write(uint16_t address, uint8_t data) {
     bus->busWrite(address,data);
 }
-
+//bus reads value from main memory or the ppu or the cartridge
 uint8_t CPU6502::read(uint16_t address) {
     return bus->busRead(address);
 }
@@ -682,7 +685,7 @@ void CPU6502::TXS(){
 }
 
 void CPU6502::PHA(){
-    this->write(0x100 + this->SP, this->ACC);
+    this->write(0x100 | this->SP, this->ACC);
     this->SP--;
     logger.debug(__FUNCTION__ ,
                  "push accumulator on stack.");
@@ -691,7 +694,7 @@ void CPU6502::PHA(){
 void CPU6502::PHP(){
     setStatusFlag(B, true);
     setStatusFlag(B2, true);
-    this->write(0x100 + this->SP, this->SR);
+    this->write(0x100 | this->SP, this->SR);
     this->SP--;
     setStatusFlag(B, false);
     logger.debug(__FUNCTION__ ,
@@ -700,7 +703,7 @@ void CPU6502::PHP(){
 
 void CPU6502::PLA(){
     this->SP++;
-    this->ACC = read(0x100 + this->SP);
+    this->ACC = read(0x100 | this->SP);
     this->setNegative(this->ACC);
     this->setZero(this->ACC);
     logger.debug(__FUNCTION__ ,
@@ -709,7 +712,7 @@ void CPU6502::PLA(){
 
 void CPU6502::PLP(){
     this->SP++;
-    this->SR = read(0x100 + this->SP);
+    this->SR = read(0x100 | this->SP);
     setStatusFlag(B, false);
     //setStatusFlag(B2, true);        //strictly speaking B2 flag should always be true
     logger.debug(__FUNCTION__ ,
@@ -775,57 +778,51 @@ void CPU6502::BIT(){
 }
 
 //Arithmetic
-//TODO maybe comment and explain adc and sbc as they are the most complex ones, especially the overflow flag v
+//reference for ADC: http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 void CPU6502::ADC(){
     //possible it needs an additional cycle
     opCycleInc = true;
-
-    uint16_t a = (uint16_t)ACC;
-    uint16_t b = (uint16_t) read(addressparam);
-    uint16_t c = a + b + getStatusFlag(C);;
-    if (((~(a ^ b))&(a ^ c))&0x0080) {
-        setStatusFlag(V, true);
-    } else {
-        setStatusFlag(V, false);
-    }
+    uint16_t m = (uint16_t) ACC;
+    uint16_t n = (uint16_t) read(addressparam);
+    uint16_t s = m + n + getStatusFlag(C);
+    //if the sign of both inputs m and n are different from the sign of the result the overflow flag needs to be set
+    setStatusFlag(V, (m ^ s) & (n ^ s) & 0x80);
     //update zero flag
-    setStatusFlag(Z, (c & 0x00FF) == 0);
+    setStatusFlag(Z, (s & 0x00FF) == 0);
     //update carry flag
-    setStatusFlag(C, c > 255);
+    setStatusFlag(C, s > 255);
     //update negative flag
-    setStatusFlag(N, c & EIGHTH);
+    setStatusFlag(N, s & EIGHTH);
     //write result back to accumulator
-    ACC = (uint8_t) c & 0x00FF;
+    ACC = (uint8_t) s & 0x00FF;
 }
 
+//reference for SBC: http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 void CPU6502::SBC(){
     /**
-     * c = a - b - (1 - Carry)
-     * -> c = a + (-1*(b-(1-c))
-     * -> c = a + (-b + 1 + c)
+     * s = m - n - borrow, where borrow is the opposite of the carry flag
+     * s = m - n - b + 256 (adding 256 doesn't change the 8 bit value)
+     * s = m - n - (1 - c) + 256
+     * s = m + (255 - n) + c
+     * s = m + (ones complement of n) + c
+     * this way SBC can be implemented the same way as ADC but we take the ones complement of n
      */
     //possible it needs an additional cycle
     opCycleInc = true;
 
-    uint16_t a = (uint16_t)ACC;
-    uint16_t b = (uint16_t) read(addressparam)^0x00FF;
-    uint16_t c = a + b + (uint16_t) getStatusFlag(C);
-    if ((~(a ^ b))&(a ^ c)&0x0080) {
-        setStatusFlag(V, true);
-    } else {
-        setStatusFlag(V, false);
-    }
+    uint16_t m = (uint16_t)ACC;
+    uint16_t n = (uint16_t) read(addressparam) ^ 0x00FF; //us xor 0x00FF instead of ~ because n is 16 bits
+    uint16_t s = m + n + getStatusFlag(C);
+    //if the sign of both inputs m and n are different from the sign of the result the overflow flag needs to be set
+    setStatusFlag(V, (m ^ s) & (n ^ s) & 0x80);
     //update zero flag
-    setStatusFlag(Z, (c & 0x00FF) == 0);
+    setStatusFlag(Z, (s & 0x00FF) == 0);
     //update carry flag
-    setStatusFlag(C, c & 0xFF00);
+    setStatusFlag(C, s & 0xFF00);
     //update negative flag
-    setStatusFlag(N, c & EIGHTH);
+    setStatusFlag(N, s & EIGHTH);
     //write result back to accumulator
-    ACC = c & 0x00FF;
-
-
-
+    ACC = s & 0x00FF;
 }
 
 void CPU6502::CMP(){
@@ -975,10 +972,10 @@ void CPU6502::JMP(){
 
 void CPU6502::JSR(){
     //(Jump to Subroutine) The JSR instruction pushes the address (minus one) of the return point on to the stack (PC-1)
-    // and then sets the program counter to the target memory address.
-    bus->busWrite(0x0100 + SP, ((PC-1) >> 8) & 0x00FF);     //push high-byte of PC-1 to Stack
+    // and then sets the program counter to the subroutines memory address.
+    bus->busWrite(0x0100 | SP, ((PC-1) >> 8));     //push high-byte of PC-1 to Stack
     SP--;                                                               //adjust StackPointer
-    bus->busWrite(0x0100 + SP, (PC-1) & 0x00FF);            //push low-byte of PC-1 to Stack
+    bus->busWrite(0x0100 | SP, (PC-1) & 0x00FF);            //push low-byte of PC-1 to Stack
     SP--;                                                               //adjust StackPointer to point to the next free space
     PC = addressparam;                                                  //adjust ProgramCounter
     logger.debug(__FUNCTION__ ,
@@ -989,10 +986,10 @@ void CPU6502::RTS(){
     //(Return from Subroutine) The RTS instruction is used at the end of a subroutine to return to the calling routine.
     //It pulls the program counter (minus one) from the stack.
     SP++;                                                                   //adjust StackPointer to top element
-    uint16_t low = (uint16_t)bus->busRead(0x0100 + SP);                //get low-byte from stack
+    uint16_t low = (uint16_t)bus->busRead(0x0100 | SP);                //get low-byte from stack
     SP++;                                                                   //adjust StackPointer
-    uint16_t high = (uint16_t)(bus->busRead(0x0100 + SP)) << 8;        //get high-byte from stack
-    PC = high + low + 1;                                                    //set new ProgramCounter
+    uint16_t high = (uint16_t)(bus->busRead(0x0100 | SP)) << 8;        //get high-byte from stack
+    PC = (high | low) + 1;                                                    //set new ProgramCounter
     logger.debug(__FUNCTION__ ,
                  "Return from Subroutine");
 }
@@ -1003,7 +1000,7 @@ void CPU6502::BCC(){
     if (getStatusFlag(C) == false) {
         //branch is taken, so additional cycle needed
         cycle++;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+        if ((addressparam & 0xFF00) - (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
         PC = addressparam;
@@ -1017,7 +1014,7 @@ void CPU6502::BCS(){
     if (getStatusFlag(C) == true) {
         //branch is taken, so additional cycle needed
         cycle++;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+        if ((addressparam & 0xFF00) - (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
         PC = addressparam;
@@ -1031,7 +1028,7 @@ void CPU6502::BEQ(){
     if (getStatusFlag(Z) == true) {
         //branch is taken, so additional cycle needed
         cycle++;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+        if ((addressparam & 0xFF00) - (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
         PC = addressparam;
@@ -1045,7 +1042,7 @@ void CPU6502::BMI(){
     if (getStatusFlag(N) == true) {
         //branch is taken, so additional cycle needed
         cycle++;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+        if ((addressparam & 0xFF00) - (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
         PC = addressparam;
@@ -1059,7 +1056,7 @@ void CPU6502::BNE(){
     if (getStatusFlag(Z) == false) {
         //branch is taken, so additional cycle needed
         cycle++;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+        if ((addressparam & 0xFF00) - (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
         PC = addressparam;
@@ -1073,7 +1070,7 @@ void CPU6502::BPL(){
     if (getStatusFlag(N) == false) {
         //branch is taken, so additional cycle needed
         cycle++;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+        if ((addressparam & 0xFF00) - (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
         PC = addressparam;
@@ -1087,7 +1084,7 @@ void CPU6502::BVC(){
     if (getStatusFlag(V) == false) {
         //branch is taken, so additional cycle needed
         cycle++;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+        if ((addressparam & 0xFF00) - (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
         PC = addressparam;
@@ -1101,7 +1098,7 @@ void CPU6502::BVS(){
     if (getStatusFlag(V) == true) {
         //branch is taken, so additional cycle needed
         cycle++;
-        if ((addressparam & 0xFF00) != (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
+        if ((addressparam & 0xFF00) - (PC & 0xFF00)) {     //check if page was changed, if so cycle needs to be
             cycle++;                                     //incremented
         }
         PC = addressparam;
@@ -1162,11 +1159,11 @@ void CPU6502::BRK(){
     //set Status flags before before pushing status register
     setStatusFlag(B, true);
     setStatusFlag(B2, true);
-    bus->busWrite(0x0100 + SP, (PC >> 8) & 0x00FF);  //push high byte of PC onto stack
+    bus->busWrite(0x0100 | SP, (PC >> 8));  //push high byte of PC onto stack
     SP--;
-    bus->busWrite(0x0100 + SP, PC & 0x00FF);         //push low byte of PC onto stack
+    bus->busWrite(0x0100 | SP, PC & 0x00FF);         //push low byte of PC onto stack
     SP--;
-    bus->busWrite(0x0100 + SP, SR);                        //push status register onto stack
+    bus->busWrite(0x0100 | SP, SR);                        //push status register onto stack
     SP--;
     setStatusFlag(I, true);
 
@@ -1183,12 +1180,12 @@ void CPU6502::NOP(){
 void CPU6502::RTI(){
     SP++;
     //fetch old status register from stack
-    SR = bus->busRead(0x0100 + SP);
+    SR = bus->busRead(0x0100 | SP);
     SP++;
     //fetch old PC from stack
-    uint16_t low = uint16_t (bus->busRead(0x0100 + SP));
+    uint16_t low = uint16_t (bus->busRead(0x0100 | SP));
     SP++;
-    uint16_t high = uint16_t ((bus->busRead(0x0100 + SP)));
+    uint16_t high = uint16_t ((bus->busRead(0x0100 | SP)));
     PC = (high << 8) | low;
     setStatusFlag(B2, true);    //should always be true, so setting it again just in case
     logger.debug(__FUNCTION__ ,
