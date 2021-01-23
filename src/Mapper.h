@@ -7,7 +7,7 @@
 
 
 class Mapper {
-
+//Will be used to implement multiple mappers
 };
 
 

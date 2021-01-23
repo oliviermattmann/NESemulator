@@ -9,7 +9,9 @@ Cartridge::Cartridge() {
     return;
 }
 
-
+/*
+ * Currently implements Mapper 0, will be more generic with more mappers implemented
+ */
 Cartridge::Cartridge(const std::string& fileName) {
     //https://stackoverflow.com/questions/15138353/how-to-read-a-binary-file-into-a-vector-of-unsigned-chars
     std::ifstream stream(fileName, std::ios::in | std::ios::binary);
