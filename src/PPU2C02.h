@@ -123,7 +123,10 @@ public:
 
     void fetchPipeline();
 
-
+    /*
+     * https://austinmorlan.com/posts/nes_rendering_overview/
+     * This was a great high level explanation of how the rendering works
+     */
     uint8_t nameTable[2][1024];
     uint8_t patternTable[2][4096];
     uint8_t paletteTable[32];
