@@ -30,7 +30,7 @@ void NESemulator::run() {
     patternScreens[1].init(128, 128, 2, 750, 400, sf::Color::Green);
 
     //set Framerate Limit
-    window.setFramerateLimit(70);
+    window.setFramerateLimit(60);
 
     //we can already prepare the patterntables as they don't change
     drawPatternTable(0);
