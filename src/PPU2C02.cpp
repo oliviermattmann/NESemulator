@@ -22,7 +22,6 @@ PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
     renderState = PreRender;
     spriteZeroDrawn = false;
     spriteZeroOnScanLine = false;
-    spriteZeroHitInFrame = false;
     writeToggle = false;
     ppu_ctrl = 0x00;
     ppu_mask = 0x00;
@@ -37,15 +36,12 @@ PPU2C02::PPU2C02(Bus *busRef, Screen &screenRef) :
     this->set_ppu_mask(BACKGR_LEFT_COL_ENABLE, false);
     this->set_ppu_mask(SPRITE_LEFT_COL_ENABLE, false);
 
-
-
     for (int i = 0; i < 64; i++) {
         this->colors[i] = sf::Color {colorData[i].r, colorData[i].g, colorData[i].b, 255};
     }
 }
 
 PPU2C02::~PPU2C02() = default;
-
 
 void PPU2C02::setNMI(std::function<void()> nmi) {
     nmiVblank = nmi;
@@ -62,7 +58,6 @@ void PPU2C02::set_ppu_ctrl(CTRL_MASK b, bool status) {
     }
 }
 
-
 bool PPU2C02::get_ppu_ctrl(CTRL_MASK b) const {
     return (b & this->ppu_ctrl);
 }
@@ -70,7 +65,6 @@ bool PPU2C02::get_ppu_ctrl(CTRL_MASK b) const {
 void PPU2C02::set_ppu_ctrl(uint8_t val) {
     this->ppu_ctrl = val;
 }
-
 
 // Mask Register
 
@@ -361,7 +355,6 @@ void PPU2C02::writeCPU(uint16_t address, uint8_t data) {
     }
 }
 void PPU2C02::clock() {
-
     //for details see diagram:
     switch (renderState) {
         case PreRender:
@@ -406,7 +399,7 @@ void PPU2C02::clock() {
         case Render:
             if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE || ppu_mask & MASK_MASK::SPRITE_ENABLE) {
             }
-            //1 cycle is skipped
+            //1 cycle is skipped on odd frames
             if (cycle == 0 && scanLine == 1 && odd) {
                 cycle = 1;
             }
@@ -438,14 +431,11 @@ void PPU2C02::clock() {
                     bgPaletteID = (((paletteAttributesShift_bg_msb & fineXMultiplexer) > 0 ? 1:0) << 1) |
                                           ((paletteAttributesShift_bg_lsb & fineXMultiplexer) > 0 ? 1:0);
 
-
                     shiftShifters();
                 }
                 if (ppu_mask & MASK_MASK::SPRITE_ENABLE) {
                     bool pixelSet = false;
                    for (int i = 0; i < 8; i++) {
-
-                       //TODO Reset dont know what
                        if (spriteCounter[i] < -7) {
                            //do nothing
                        } else if (spriteCounter[i] > 0) { //Have we hit the beginning of this sprite yet?
@@ -464,15 +454,12 @@ void PPU2C02::clock() {
                                }
                                pixelSet = true;
                            }
-
-
                        } else {
                            spriteShift[i][0] <<= 1;
                            spriteShift[i][1] <<= 1;
                            spriteCounter[i]--;
                        }
                    }
-
                 }
                 if ((ppu_mask & MASK_MASK::SPRITE_ENABLE) || (ppu_mask & MASK_MASK::BACKGROUND_ENABLE)) {
                     if (bgPixelColorID == 0 && spritePixelColorID == 0) {
@@ -491,11 +478,9 @@ void PPU2C02::clock() {
                             finalPaletteID = bgPaletteID;
                         } else {
                             finalPixelColorID = spritePixelColorID;
-                            finalPaletteID = 4+spritePaletteID;
+                            finalPaletteID = 4 + spritePaletteID;
                         }
                     }
-
-
                 }
                 if (spriteZeroOnScanLine && spriteZeroDrawn) {
                     //see wiki on when it happens and when not
@@ -504,7 +489,7 @@ void PPU2C02::clock() {
                     //and the foreground
                     if (get_ppu_mask(MASK_MASK::SPRITE_ENABLE) && get_ppu_mask(MASK_MASK::BACKGROUND_ENABLE)) {
                         //only when they are not opaque (not zero)
-                        if (bgPixelColorID!=0 && spritePixelColorID!=0) {
+                        if (bgPixelColorID != 0 && spritePixelColorID != 0) {
                             //if either of those bits in the mask register are zero we ignore cycle 0 to 7
                             if (!get_ppu_mask(MASK_MASK::SPRITE_LEFT_COL_ENABLE) || !get_ppu_mask(MASK_MASK::BACKGR_LEFT_COL_ENABLE)) {
                                 if (cycle >= 8 && cycle < 255) {
@@ -520,7 +505,6 @@ void PPU2C02::clock() {
                         }
                     }
                 }
-
                 ppuScreen.setPixel(cycle , scanLine, getColor(finalPaletteID, finalPixelColorID));
             }
             if (cycle == 257) {
@@ -550,16 +534,8 @@ void PPU2C02::clock() {
                 scanLine = 241;
                 cycle = 0;
                 renderState = VerticalBlank;
-                //cout << "----------------------------------------------------------------------------------------------------------" << endl;
-                for (int i = 0; i < 64; i++) {
-                    //cout << "Y-Address: " << int(primaryOAM[i*4]) << ", Pattern Index: " << int(primaryOAM[i*4+1]) << ", Attribute Byte: " << bitset<8>(primaryOAM[i*4+2]) << ", X-Position: " << int(primaryOAM[i*4+3])<< endl;
-                }
-
             }
-
-
             break;
-
         case VerticalBlank:
             if (scanLine == 241 && cycle == 1) {
                 set_ppu_stat(STAT_MASK::VBLANK, true);
@@ -568,7 +544,6 @@ void PPU2C02::clock() {
                     nmiVblank();
                 }
             }
-
             if (scanLine < 261 && cycle < 340) {
                 cycle++;
             }
@@ -582,10 +557,9 @@ void PPU2C02::clock() {
                 renderState = PreRender;
             }
             break;
-
-
     }
 }
+
 void PPU2C02::fetchPipeline() {
     switch (cycle % 8) {
         case 0:
@@ -646,19 +620,12 @@ void PPU2C02::fetchPipeline() {
     }
 }
 
-
-
-
-
-
-
 sf::Color PPU2C02::getColor(uint8_t palette, uint8_t colorIndex) {
     return colors[(readPPU(0x3F00 | (palette << 2) | colorIndex)) & 0x3F];
 }
 
 void PPU2C02::getPatternTile(uint16_t index) {
     index = index * 16;
-
     for (int i = 0; i < 8; i++) {
         uint8_t lo = bus->cartridge.chrData[index + i];
         uint8_t hi = bus->cartridge.chrData[index + i + 8];
@@ -735,12 +702,13 @@ void PPU2C02::setFineX(uint8_t value) {
 uint8_t PPU2C02::getFineX() {
     return fineX;
 }
+
 /*
- * for details on implementation of the next 4 methods see and credits also go to
+ * for details on implementation of the next 4 methods see link below and credits also go to loopy
  * https://wiki.nesdev.com/w/index.php/PPU_scrolling
  */
 void PPU2C02::incrementCoarseX() {
-    if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
+    if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE || ppu_mask & MASK_MASK::SPRITE_ENABLE) {
         if ((absLoopy & 0x001F) == 31) {
             absLoopy &= ~0x001F;
             absLoopy ^= 0x0400;
@@ -749,10 +717,10 @@ void PPU2C02::incrementCoarseX() {
         }
     }
 }
-void PPU2C02::incrementY() {
-    if (ppu_mask&MASK_MASK::BACKGROUND_ENABLE || ppu_mask&MASK_MASK::SPRITE_ENABLE) {
-        if ((absLoopy & 0x7000) != 0x7000) {
 
+void PPU2C02::incrementY() {
+    if (ppu_mask & MASK_MASK::BACKGROUND_ENABLE || ppu_mask & MASK_MASK::SPRITE_ENABLE) {
+        if ((absLoopy & 0x7000) != 0x7000) {
             absLoopy += 0x1000;
         } else {
             absLoopy &= (~0x7000);
@@ -765,7 +733,6 @@ void PPU2C02::incrementY() {
             } else {
                 y++;
             }
-
             absLoopy &= (~0x03E0);
             absLoopy |= (y << 5);
         }
@@ -810,7 +777,7 @@ void PPU2C02::shiftShifters() {
 }
 
 /*
- * Each visible
+ * Each visible scanline
  */
 void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
     //byte 0 y position of the top of sprite
@@ -837,7 +804,6 @@ void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
                     break;
                 }
                 if (count == 0) {
-
                     spriteZeroOnScanLine = true;
                 }
                 std::memcpy(secondaryOAM + sizeof(uint8_t) * 4 * spriteCount, primaryOAM + sizeof(uint8_t) * 4 * count,
@@ -903,8 +869,6 @@ void PPU2C02::loadScanlineSprites(int16_t nextScanLine) {
                 if (horizontalFlip) {
                     flipHorizonally(spriteCount);
                 }
-
-
                 spriteCount++;
             }
         }
@@ -942,6 +906,7 @@ void PPU2C02::updateLoopyY() {
         absLoopy |= (tempLoopy & 0x03E0);
     }
 }
+
 /*
  * Method used to flip bits of the pattern byte horizontally, for example
  * 0b01100000 -> 0x00000110, used for sprites
@@ -956,5 +921,4 @@ void PPU2C02::flipHorizonally(uint8_t spriteIndex) {
         }
         spriteShift[spriteIndex][i] = temp;
     }
-
 }

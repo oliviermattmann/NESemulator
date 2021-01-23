@@ -13,9 +13,8 @@ Bus::Bus() {
         text = 0x00;
     }
 }
-Bus::~Bus() {
-    //does nothing
-}
+
+Bus::~Bus() = default;
 
 uint8_t Bus::busRead(uint16_t address){
     //reading from main memory
@@ -41,14 +40,11 @@ uint8_t Bus::busRead(uint16_t address){
     }
     return -1;
 }
+
 void Bus::busWrite(uint16_t address, uint8_t data){
     //writes to the main memory
-
-
     if (address <= 0x1FFF) {
         //address is mirrored because the memory is is only 2KB
-
-
         RAM[address & 0x07FF] = data;
     }
     //write to this address transfers the controller byte buffered into the status for the cpu to be read 1 bit at a time
@@ -69,6 +65,3 @@ void Bus::busWrite(uint16_t address, uint8_t data){
 void Bus::insertCartridge(Cartridge cartridge) {
     this->cartridge = std::move(cartridge);
 }
-
-
-

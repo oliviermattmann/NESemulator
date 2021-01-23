@@ -10,7 +10,6 @@
 #include <iomanip>
 
 
-
 /**
  * Constructor for the CPU6502 emulating class.
  * @param bus
@@ -36,7 +35,6 @@ CPU6502::CPU6502(Bus *busRef) {
     op_code = 0x0;
     addressparam = 0;
     address_rel = 0;
-
 
     cycle = 0;
     addrCycleInc = false;
@@ -354,7 +352,7 @@ void CPU6502::RESET() {
     implied = false;
     addrCycleInc = false;
     opCycleInc = false;
-    cycle = 7;              //the first 7 cylces the cpu is idle
+    cycle = 7;              //the first 7 cycles the cpu is idle
 }
 
 void CPU6502::NMI() {
@@ -408,8 +406,7 @@ void CPU6502::imm() {
 }
 
 //Never used, but it was mentioned in the wiki
-void CPU6502::acc() {
-}
+void CPU6502::acc() {}
 
 void CPU6502::zp() {
     PC++;
@@ -563,17 +560,16 @@ void CPU6502::setZero(uint8_t val) {
     }
 }
 
-
 /* Bus Handling */
 //connection to the other components, bus writes to main memory or the ppu, the cartridge is not written to
 void CPU6502::write(uint16_t address, uint8_t data) {
     bus->busWrite(address,data);
 }
+
 //bus reads value from main memory or the ppu or the cartridge
 uint8_t CPU6502::read(uint16_t address) {
     return bus->busRead(address);
 }
-
 
 /* OP functions */
 /*
@@ -785,7 +781,8 @@ void CPU6502::ADC(){
     uint16_t m = (uint16_t) ACC;
     uint16_t n = (uint16_t) read(addressparam);
     uint16_t s = m + n + getStatusFlag(C);
-    //if the sign of both inputs m and n are different from the sign of the result the overflow flag needs to be set
+    //if the sign of both inputs m and n are different from the sign of the result the overflow flag needs to be set,
+    //see reference
     setStatusFlag(V, (m ^ s) & (n ^ s) & 0x80);
     //update zero flag
     setStatusFlag(Z, (s & 0x00FF) == 0);
@@ -813,7 +810,8 @@ void CPU6502::SBC(){
     uint16_t m = (uint16_t)ACC;
     uint16_t n = (uint16_t) read(addressparam) ^ 0x00FF; //us xor 0x00FF instead of ~ because n is 16 bits
     uint16_t s = m + n + getStatusFlag(C);
-    //if the sign of both inputs m and n are different from the sign of the result the overflow flag needs to be set
+    //if the sign of both inputs m and n are different from the sign of the result the overflow flag needs to be set,
+    //see reference
     setStatusFlag(V, (m ^ s) & (n ^ s) & 0x80);
     //update zero flag
     setStatusFlag(Z, (s & 0x00FF) == 0);
@@ -847,7 +845,6 @@ void CPU6502::CPY(){
     setStatusFlag(N, (uint8_t) (Y - read(addressparam)) &EIGHTH);
 }
 
-
 //Increments/Decrements
 
 void CPU6502::INC(){
@@ -869,7 +866,6 @@ void CPU6502::INY(){
 }
 
 void CPU6502::DEC(){
-
     write(addressparam, read(addressparam)-1);
     setStatusFlag(Z, read(addressparam) == 0);
     setStatusFlag(N, read(addressparam) & EIGHTH);
@@ -904,7 +900,6 @@ void CPU6502::ASL(){
     } else {
         write(addressparam, data);
     }
-
 }
 
 void CPU6502::LSR(){
@@ -942,7 +937,6 @@ void CPU6502::ROL(){
     } else {
         write(addressparam, data & 0x00FF);
     }
-
 }
 
 void CPU6502::ROR(){
@@ -964,7 +958,6 @@ void CPU6502::ROR(){
 
 //Jumps/Calls
 void CPU6502::JMP(){
-
     PC = addressparam;
     logger.debug(__FUNCTION__ ,
                  "Jump in PC");
@@ -1107,7 +1100,6 @@ void CPU6502::BVS(){
                  "Branch if Overflow Flag set");
 }
 
-
 //Status Flag Changes
 
 void CPU6502::SEC(){
@@ -1166,11 +1158,8 @@ void CPU6502::BRK(){
     bus->busWrite(0x0100 | SP, SR);                        //push status register onto stack
     SP--;
     setStatusFlag(I, true);
-
-
     //set PC to IRQ vector
     PC = (uint16_t)read(0xFFFE) | ((uint16_t)read(0xFFFF) << 8);
-
 }
 
 void CPU6502::NOP(){
@@ -1191,8 +1180,6 @@ void CPU6502::RTI(){
     logger.debug(__FUNCTION__ ,
                  "Return From Interrupt");
 }
-
-
 
 //other (unofficial op-codes)
 void CPU6502::ISC(){}
@@ -1215,6 +1202,10 @@ void CPU6502::LAS(){}
 void CPU6502::ALR(){}
 void CPU6502::RRA(){}
 void CPU6502::RLA(){}
+
+/*
+ * Helper functions for debugging
+ */
 
 std::string CPU6502::intToHexString(uint8_t val) {
     std::stringstream ss;
@@ -1272,4 +1263,3 @@ void CPU6502::diplayFlags() {
     << "| V : " << getStatusFlag(V) << " |" << std::endl
     << "| N : " << getStatusFlag(N) << " |" << std::endl << std::endl;
 }
-

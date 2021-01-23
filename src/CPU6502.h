@@ -2,7 +2,6 @@
  *  This header defines the CPU6502 emulating class.
  */
 
-
 #ifndef NESEMULATOR_CPU6502_H
 #define NESEMULATOR_CPU6502_H
 #include <cstdint>
@@ -41,20 +40,11 @@ public:
                                 //cycles are only increased with both bools are set to true
     uint8_t cycle;
 
-
     /**
      * Constructor for the CPU6502 emulating class.
      * @param bus
      */
     CPU6502(Bus *busRef);
-
-    /**
-     * Establishes a connection the the Bus
-     * @param ourBus pointer to the Bus, provided by the Bus at initialization
-     */
-    //void bindToBus(Bus *ourBus) {bus = ourBus;}
-
-
 
     /**
      * Writes a byte to a given address.
@@ -70,9 +60,6 @@ public:
      */
     uint8_t read(uint16_t address);
 
-
-
-
     /* Operation-Code Handling */
     /**
      *  OP_CODE struct emulates an entry in the
@@ -87,7 +74,7 @@ public:
     };
 
     uint8_t op_code;        //Index into the OP-Code Lookuptable
-    uint16_t addressparam;  //set by addressing mode funcions
+    uint16_t addressparam;  //set by addressing mode functions
     uint8_t data;           //needed for arithmetic functions
     int8_t address_rel;     //needed for branching instructions
     bool implied;           //used to indicate that addressing mode is implied
@@ -151,13 +138,11 @@ public:
 
     uint8_t getStatusFlag(Flags flag);
 
-
 private:
 
     void setNegative(uint8_t val);
 
     void setZero(uint8_t val);
-
 
     /* Main Addressing Modes */
     /**

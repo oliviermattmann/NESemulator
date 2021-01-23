@@ -6,7 +6,7 @@
 
 NESemulator::NESemulator() {
     bus = new Bus();
-    cartridge = new Cartridge("../roms/SMB.nes");
+    cartridge = new Cartridge("../roms/KungFu.nes");
     bus->insertCartridge(*cartridge);
     cpu = new CPU6502(bus);
     ppu = new PPU2C02(bus, mainScreen);
@@ -116,14 +116,9 @@ void NESemulator::run() {
 
 //Initializes the cpu Status screen
 void NESemulator::initStatus() {
-    /*if(!myFont.loadFromFile("resources/Fonts/ARIAL.TTF")) {
-        cout << "Error Loading font (ignore when running source code)" << endl;
-    }*/
-
-        if (!myFont.loadFromFile("../resources/Fonts/ARIAL.TTF")) {
+    if (!myFont.loadFromFile("../resources/Fonts/ARIAL.TTF")) {
             cout << "Error loading font, shouldn't happen" << endl;
-        }
-
+    }
     for (int i = 0; i < 8; i++) {
         cpuStatus[i].setFont(myFont);
         if (i == 2) {
@@ -131,7 +126,6 @@ void NESemulator::initStatus() {
         } else {
             cpuStatus[i].setPosition(775+i*30, 0);
         }
-
         cpuStatus[i].setCharacterSize(30);
         cpuStatus[i].setStyle(sf::Text::Bold);
         cpuStatus[i].setFillColor(sf::Color::Green);
@@ -160,7 +154,6 @@ void NESemulator::initControllerInfo() {
     controllerInfo[2].setString("A: Select (confirms selection in Menu also pauses the game)");
     controllerInfo[3].setString("S: Start (change selection in Menu)");
     controllerInfo[4].setString("Arrow Keys: Movement");
-
 }
 
 //Updates the cpu status registers on screen, green for set and red for cleared
@@ -200,7 +193,6 @@ void NESemulator::clock() {
                     if (bus->dmaAddress == 0) {
                         bus->dma = false;
                         bus->idle = true;
-
                     }
                 }
             }

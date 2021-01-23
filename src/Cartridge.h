@@ -46,6 +46,4 @@ enum BitMask {
     SEVENTH = 1 << 6,
     EIGHTH = 1 << 7
 };
-
-
 #endif //NESEMULATOR_CARTRIDGE_H

@@ -11,6 +11,7 @@
 #include "PPU2C02.h"
 #include "CPU6502.h"
 
+
 //forward declarations
 class Cartridge;
 class PPU2C02;
@@ -29,7 +30,6 @@ public:
     PPU2C02 *ppu = nullptr;
     CPU6502 *cpu = nullptr;
 
-
     //Both the ppu and nesemulator have access to this class, so the dma variables are the here
     bool dma = false;
     bool idle = true;
@@ -37,7 +37,6 @@ public:
     uint8_t dmaData;
     uint8_t dmaPage;
     uint8_t dmaAddress;
-
 
     Bus();
 
@@ -49,6 +48,5 @@ public:
     void busWrite(uint16_t address, uint8_t data);
     //initialized the cartridge
     void insertCartridge(Cartridge cartridge);
-
 };
 #endif //NESEMULATOR_BUS_H

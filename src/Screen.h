@@ -6,7 +6,6 @@
 #define NESEMULATOR_SCREEN_H
 #include "SFML/Graphics.hpp"
 
-
 class Screen : public sf::Drawable {
 public:
     void init(uint16_t width, uint16_t height, float pixelSize, uint16_t x, uint16_t y, sf::Color initColor);
@@ -18,7 +17,6 @@ private:
     float pSize;
     uint16_t xPos;
     uint16_t yPos;
-
 };
 
 

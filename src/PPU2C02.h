@@ -15,7 +15,6 @@ class Bus;
  *  */
 class PPU2C02 {
 
-
 public:
     //Constuctor and Destructor
     PPU2C02(Bus *busRef, Screen &screenRef);
@@ -99,16 +98,10 @@ public:
     //bool if sprite zero is actually drawn
     bool spriteZeroDrawn;
 
-    bool spriteZeroHitInFrame;
-
-
     //Multiplexer Mask used for fineX scrolling
     uint16_t fineXMultiplexer;
 
-
-
     uint8_t dataBuffer = 0x00;
-
 
     int16_t scanLine = -1;
     uint16_t cycle = 0;
@@ -149,10 +142,6 @@ public:
         $3F00-$3F1F 	$0020 	Palette RAM indexes
         $3F20-$3FFF 	$00E0 	Mirrors of $3F00-$3F1F
      */
-
-
-
-
 
     /**
      * Contains a color in rgb code.
@@ -294,7 +283,6 @@ public:
 
     void set_ppu_ctrl(uint8_t val);
 
-
     // Mask Register
 
     /**
@@ -379,7 +367,6 @@ public:
     uint8_t get_ppu_scro() const;
 
 
-
     // get/set register based on address (for CPU)
     uint8_t get_register(uint16_t address);
 
@@ -405,15 +392,8 @@ public:
     uint8_t readPPU(uint16_t address);
 
     void writePPU(uint16_t address, uint8_t data);
-/*
-    void bindToBus(Bus *ourBus, Screen *screen1) {
-        bus = ourBus;
-    }
-*/
+
     void clock();
-
-
-
 
     void updatePatternTileRowVar(uint16_t index);
 

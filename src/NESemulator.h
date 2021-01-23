@@ -19,7 +19,6 @@
 class NESemulator {
 public:
     Cartridge* cartridge;
-    //Bus bus;
     Bus *bus;
     CPU6502 *cpu;
     PPU2C02 *ppu;
@@ -42,6 +41,5 @@ public:
     void initControllerInfo();
     void clock();
     void drawPatternTable(int number);
-
 };
 #endif //NESEMULATOR_NESEMULATOR_H

@@ -17,7 +17,7 @@ void NesTestParser::getLine() {
         lineArray[1] = (uint16_t)stol(line.substr(6,2), nullptr, 16);
         std::string addr = line.substr(20, 6);
         if (addr.front() == '#' || addr.front() == ' ' || addr.front() == 'A' || addr.front() == '(') {
-            lineArray[2] = NULL;
+            lineArray[2] = 0;
         } else if (addr.back() == ',') {
             lineArray[2] = (uint16_t)stol(line.substr(30, 4), nullptr, 16);
         } else if (addr.at(3) == ',') {
@@ -49,7 +49,7 @@ void NesTestParser::validate(uint16_t pc, uint8_t op, uint16_t address, uint8_t 
 
         std::cout << "filler" << std::endl;
     }
-    if (lineArray[2] != NULL && lineArray[2] != address) {
+    if (lineArray[2] != 0 && lineArray[2] != address) {
         std::cout << "wrong addressParam, was: " << std::setfill('0') << std::setw(2)<< std::hex << address << " should have been: " << std::setfill('0') << std::setw(2)<< std::hex << lineArray[2] << std::endl;
 
         std::cout << "filler" << std::endl;

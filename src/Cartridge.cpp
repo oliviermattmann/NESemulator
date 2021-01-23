@@ -1,9 +1,9 @@
 //
 // Created by matia on 25/11/2020.
 //
-
 #include <fstream>
 #include "Cartridge.h"
+
 
 Cartridge::Cartridge() {
     return;
@@ -14,6 +14,8 @@ Cartridge::Cartridge() {
  */
 Cartridge::Cartridge(const std::string& fileName) {
     //https://stackoverflow.com/questions/15138353/how-to-read-a-binary-file-into-a-vector-of-unsigned-chars
+    //https://wiki.nesdev.com/w/index.php/INES
+    //https://wiki.nesdev.com/w/index.php/NROM
     std::ifstream stream(fileName, std::ios::in | std::ios::binary);
     std::vector<uint8_t> contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
     std::cout << "file size: " << contents.size() << std::endl;

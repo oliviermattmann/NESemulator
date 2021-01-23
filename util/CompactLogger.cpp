@@ -65,6 +65,7 @@ const char *CompactLogger::get_level(LEVEL _level) {
         case FATAL:
             return "FATAL";
     }
+    return nullptr;
 }
 
 void CompactLogger::debug(const char* function_name, const char *str) {
